@@ -63,7 +63,7 @@ resource "aws_service_discovery_service" "backend_callback" {
   tags = local.tags
 }
 resource "aws_service_discovery_instance" "backend_callback" {
-  count       = local.backend_callback_enabled ? 1 : 0
+  count       = local.backend_callback_enabled && !local.managed_domain ? 1 : 0
   instance_id = "callback-alb"
   service_id  = aws_service_discovery_service.backend_callback[0].id
   attributes = {
