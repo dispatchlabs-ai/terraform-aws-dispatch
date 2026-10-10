@@ -8,8 +8,13 @@ restricted state backend and commit the caller provider lockfile. Do not share
 state between Terraform and OpenTofu executions against the same installation.
 
 Required foundation variables are `region`, `name`, `availability_zones` (exactly
-two distinct zones) and `vpc_cidr`. No example account, domain, certificate, secret
-or image is deployable by default. Foundation still creates billable resources.
+two distinct zones) and `vpc_cidr`. Before managed ingress, supply `domain.name`
+and its existing public Route 53 `zone_id`. The example passes both the regional
+AWS provider and `aws.edge` in `us-east-1`; deploy the CloudFront viewer certificate
+there even when your application region differs. No example account, domain, certificate, secret
+or image is deployable by default. Foundation still creates billable resources. Aurora defaults to 0.5–4 ACUs
+without auto-pause; review the provisioned `database_mode = "rds"` alternative and
+regional/workload cost comparison. No EFS or durable workspace is created.
 
 ```sh
 # Choose one engine consistently for your installation.

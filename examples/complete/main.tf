@@ -6,16 +6,34 @@ terraform {
 }
 
 provider "aws" { region = var.region }
+provider "aws" {
+  alias  = "edge"
+  region = "us-east-1"
+}
 
 module "dispatch" {
   # Run this example from a checked-out immutable module release.
   # An external root may instead use the repository Git URL with ?ref=<commit>.
   source = "../.."
+  providers = {
+    aws      = aws
+    aws.edge = aws.edge
+  }
 
-  name               = var.name
-  availability_zones = var.availability_zones
-  vpc_cidr           = var.vpc_cidr
-  tags               = var.tags
+  name                    = var.name
+  availability_zones      = var.availability_zones
+  vpc_cidr                = var.vpc_cidr
+  tags                    = var.tags
+  domain                  = var.domain
+  frontend_release_prefix = var.frontend_release_prefix
+
+  database_mode             = var.database_mode
+  aurora_engine_version     = var.aurora_engine_version
+  aurora_min_capacity       = var.aurora_min_capacity
+  aurora_max_capacity       = var.aurora_max_capacity
+  enable_tracing            = var.enable_tracing
+  trace_sample_ratio        = var.trace_sample_ratio
+  access_log_retention_days = var.access_log_retention_days
 
   image                       = var.image
   worker_image                = var.worker_image
@@ -23,6 +41,9 @@ module "dispatch" {
   cpu_architecture            = var.cpu_architecture
   image_pull_repository_arns  = var.image_pull_repository_arns
   application                 = var.application
+
+  worker_capacity_provider = var.worker_capacity_provider
+  log_retention_days       = var.log_retention_days
 
   certificate_arn                  = var.certificate_arn
   internal_alb                     = var.internal_alb
@@ -54,3 +75,8 @@ output "credential_maintenance" { value = module.dispatch.credential_maintenance
 output "alb_dns_name" { value = module.dispatch.alb_dns_name }
 output "alb_zone_id" { value = module.dispatch.alb_zone_id }
 output "backend_private_url" { value = module.dispatch.backend_private_url }
+
+output "frontend_bucket" { value = module.dispatch.frontend_bucket }
+output "frontend_distribution_id" { value = module.dispatch.frontend_distribution_id }
+output "frontend_release_prefix" { value = module.dispatch.frontend_release_prefix }
+output "access_log_bucket" { value = module.dispatch.access_log_bucket }

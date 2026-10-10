@@ -75,29 +75,46 @@ data deletion, version retention and recovery authority separately and obtain
 explicit authorization. The module cannot determine whether a caller's data is
 safe to discard.
 
-## Infrastructure baseline review — October 10, 2026
+## Infrastructure baseline — October 10, 2026
 
-Source audit at `9407c6a`, not a live-environment audit. The requested direction
-is cost-effective Fargate, ALB access logging, ACM/Route 53, rolling deployment,
-Secrets Manager, CloudFront for the SPA and short-retention logs/tracing, without
-an enterprise-sized platform. Current implementation does **not** meet all of it:
+The [pre-implementation audit](https://github.com/dispatchlabs-ai/terraform-aws-dispatch/blob/b5fffb4/docs/operations.md#infrastructure-baseline-review--october-10-2026)
+records the initial extraction's gaps. The baseline extension implements managed
+ACM/Route 53, CloudFront SPA/S3 OAC with a private ALB API origin, ALB access logs,
+rolling controller defaults, Aurora Serverless v2, and optional worker Spot plus
+sampled tracing. These are source features, not live AWS or zero-downtime proof.
 
-| Area | Current module |
-| --- | --- |
-| ALB to ECS tasks | Backend ALB is conditional on certificate input; targets are task IPs, not the cluster itself. |
-| Fargate | Yes; services and operator/worker tasks use Fargate. |
-| ALB access logs | Not configured on the public or private ALBs. |
-| ACM / public DNS | Accepts existing ACM certificate ARNs; does not provision certificates or public Route 53 records. |
-| Rolling updates | Opt-in for backend/launcher; omitted modes default to stop-first. Rolling is not itself a verified zero-downtime guarantee. |
-| Secrets Manager | Yes, scoped secret references and managed database master secret. |
-| PostgreSQL | Provisioned single-AZ RDS PostgreSQL with storage growth, not autoscaling Aurora Serverless v2 compute. Compare regional/workload costs before claiming Aurora is cheapest. |
-| Durable files | S3 artifacts; no EFS or S3 Files mount. Workspaces remain disposable; add a filesystem only for an actual durability requirement. |
-| SPA / CloudFront | No CloudFront distribution or separate static frontend delivery. |
-| Fargate Spot | No capacity-provider strategy; worker launcher also explicitly requests ordinary Fargate. |
-| Observability | CloudWatch application logs, configurable retention (30-day default); no tracing export configured by the module. |
+- `domain` supplies an existing public hosted zone; `aws.edge` in `us-east-1`
+  manages CloudFront's certificate. The API origin is private; viewer routes must
+  never expose operator maintenance or private callbacks. Upload verified static
+  release bundles separately; an apply does not publish the SPA.
+- Aurora uses 0.5–4 ACUs by default, no reader/proxy/auto-pause. `database_mode =
+  "rds"` is the small provisioned alternative. Changing mode is not a migration.
+  Region/version availability, real connection loss and cost need qualification;
+  retained owner connections prevent assuming an auto-pausing idle workload.
+- Controllers stay On-Demand. `worker_capacity_provider = "FARGATE_SPOT"` opts
+  workers into Spot; the default is `"FARGATE"`. Spot workers can lose capacity or be interrupted;
+  confirmed termination still precedes replacement. Durable history is not a
+  workspace snapshot or exactly-once external-effects guarantee. No EFS or S3
+  Files filesystem is added without an actual durability requirement.
+- CloudWatch application/collector logs use `log_retention_days` (seven by default;
+  supported values 1/3/5/7/14/30). ALB access logs use
+  `access_log_retention_days` (seven by default). **They can contain request
+  paths/query strings:** unlike sanitized application spans, they are not a
+  credential-safe transcript. Restrict bucket reads and keep invitation/OAuth
+  material out of public URLs wherever possible. Lifecycle expiry is asynchronous.
+- ADOT collectors receive OTLP on task loopback and export to X-Ray with write-only
+  task permissions. `trace_sample_ratio = 0.1` bounds root sampling; `enable_tracing`
+  disables/enables ordinary task collection. X-Ray retains traces for its fixed
+  30-day service period, not the configurable application-log retention.
+- Application HTTP/RPC spans and sampled structured request logs use safe route
+  templates/status/duration/trace identities. HTTP/SSE timing is **response-header
+  latency**, not stream-completion or token latency. No SQL, model/tool payloads,
+  raw URLs/headers or Pi durable execution traces are exported. Health polling is
+  excluded; shutdown export is bounded/best-effort and telemetry cannot replay
+  application calls. Operator/credential tasks have no collector; maintenance
+  terminals remain unrecorded.
 
-These gaps require explicit implementation and scoped validation; the earlier
-mock-plan acceptance does not close them. Keep any Spot policy compatible with
-interruption handling and exclusive-worker ownership. Do not record an untested
-latest database version, auto-pause configuration or guaranteed zero downtime as
-supported behavior.
+Review the cost estimate's regional/workload assumptions, collector/task sizing,
+network and storage costs before applying. Sampling/short retention reduce cost,
+not authorization or leakage risk. Actual log delivery, trace export, CDN/API/SSE,
+Aurora failover and Spot interruption remain separately qualified outcomes.

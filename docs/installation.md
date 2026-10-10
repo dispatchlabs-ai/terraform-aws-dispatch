@@ -12,16 +12,26 @@ before planning. Restrict state/plan access even though secret values are not
 module inputs. Choose the final HTTPS origin before enrollment: changing the
 hostname changes the passkey relying-party identity.
 
-Supply an issued regional ACM certificate and create your DNS alias to
-`alb_dns_name`/`alb_zone_id`. The module does not own your domain. Decide whether
-ALB ingress is internal or public and supply approved client CIDRs. Validate
-network reachability for image pulls, logs and the selected model/MCP providers.
+Supply `domain = { name, zone_id }` for an existing public Route 53 hosted zone
+that you control. The baseline manages ACM validation and DNS aliases, using the
+regional AWS provider and an `aws.edge` alias in `us-east-1` for CloudFront's
+viewer certificate. The viewer origin is `https://<domain.name>`; it must match
+`application.origin`. The API ALB stays private behind CloudFront's VPC origin;
+private S3/OAC serves the SPA. Do not add a public API-origin bypass.
+Validate regional availability and network reachability for image pulls, logs,
+tracing and selected model/MCP providers before reviewing the plan.
 
 ## 2. Apply foundation only
 
 Keep `application`, `image` and `worker_image` null, `desired_count = 0`, and
 operator-task switches false. Review the actual saved plan/cost, then apply.
-RDS, NAT, storage and other foundation resources incur costs at zero tasks.
+PostgreSQL, NAT, storage and other foundation resources incur costs at zero tasks.
+`database_mode = "aurora-serverless"` defaults to a writer with 0.5–4 ACUs, no
+reader/proxy or automatic pause. The alternative `"rds"` preserves small
+provisioned PostgreSQL. Review the dated regional cost comparison and workload
+assumptions; retained owner connections matter and serverless is not automatically
+cheapest. Select a region-supported pinned database version, not an unverified
+"latest" string.
 Read `database_address` and the RDS-managed `database_master_secret_arn`; only a
 one-off database initializer may receive master authority.
 
@@ -40,7 +50,8 @@ Populate `application` with:
 | `origin` | Final HTTPS origin |
 | `configuration_revision` | Shared backend/launcher worker-configuration identity |
 | `database_ca_pem` | Reviewed PostgreSQL CA trust, verified against the RDS hostname |
-| `backend_ca_pem` | Trust for the private backend and worker callback TLS |
+| `backend_ca_pem` | Private backend peer TLS trust |
+| `callback_ca_pem` | Required for managed domain: public ACM callback certificate CA trust, separate from peer TLS |
 | `backend_certificate_pem` | Backend leaf certificate/chain covering `backend.<name>.internal` |
 | `backend_private_key_secret_arn` | Exact secret reference for its matching private key |
 | `database_url_secret_arns` | Seven distinct URL secrets: `auth`, `provider`, `catalog`, `directory`, `routing`, `launcher`, `workers` |
@@ -57,19 +68,49 @@ provisioner store. The renderer supplies all six persistent backend configuratio
 and the separate launcher journal; do not substitute a partial map that could
 fall back to disposable SQLite.
 
-The optional private callback ALB certificate must match
-`callbacks.<name>.internal` and chain to `backend_ca_pem`. This is separate from
-the public origin certificate. Configure `launcher_internal_alb = true` for that
-callback ingress. Certificates/CA text are public configuration; private keys,
-credential-bearing URLs and tokens remain secret. Supply `secret_kms_key_arns`
-when those secrets use customer-managed KMS encryption.
+For the managed domain, regional ACM covers `callbacks.<domain.name>` and private
+DNS resolves it to the callback listener; workers must trust its public ACM CA
+chain through `callback_ca_pem`. This is separate from your private backend peer
+leaf/CA and CloudFront viewer certificate. Never send peer private keys to ACM.
+For the caller-owned certificate alternative, the private callback certificate
+must cover `backend_callback_hostname`; supply matching callback CA trust and
+keep `launcher_internal_alb = true`. Certificates/CA text are public configuration;
+private keys, credential-bearing URLs and tokens remain secret. Supply
+`secret_kms_key_arns` for customer-managed encryption keys.
 
 Select compatible digest-pinned controller and Ubuntu-worker images for the
 same Linux architecture. The [release contract](releases.md) explains artifact
 selection. Missing public release artifacts are a release blocker, not permission
 to use fabricated digests. Keep counts zero while preparing definitions.
 
-## 4. Initialize and verify explicitly
+## 4. Prepare the frontend release
+
+Use the released, SHA-256-verified SPA bundle compatible with the selected
+controller release. It contains `index.html` and built assets, not source, secrets
+or customer configuration. Do not require an application checkout or Nix build
+from an independent caller. Artifact publication remains gated on the open-source
+release; absence of that bundle is a release blocker, not permission to use a
+fabricated archive or an unrelated local build.
+
+The caller exports `frontend_bucket`, `frontend_distribution_id` and
+`frontend_release_prefix`; supply a versioned `frontend_release_prefix` such as
+`releases/<release-id>`, not a customer identity or a mutable "latest" prefix.
+Publication is an explicit operator action outside Terraform. Upload into the
+immutable release prefix returned for the frontend bucket. On first foundation, the empty bucket/distribution is not a serving installation;
+finish publication before enrollment/readiness acceptance. For updates, stage the
+full next bundle before selecting its prefix in the serving distribution; never overwrite a
+serving prefix or delete earlier releases. Hash-named assets may be cached;
+`index.html` needs short/no-cache policy. Keep the prior compatible prefix for
+rollback. Review source-controlled frontend and backend release identities
+together; an infrastructure apply does not itself publish static content.
+
+CloudFront routes `/api` and `/api/*` to the private ALB with caching disabled,
+while a static-only rewrite handles SPA navigation. Verify authenticated errors
+remain API errors, cookies and the original request origin reach the backend,
+and SSE streams are not converted into cached or buffered static responses.
+Private activation and callback paths must never become viewer routes.
+
+## 5. Initialize and verify explicitly
 
 Enable `enable_database_initializer`, plan/apply the one-off definition while
 controllers/workers remain stopped, and independently confirm actual task
@@ -117,7 +158,7 @@ Remove the temporary initializer definition/authority after successful bootstrap
 without deleting stores or secrets. The application owns schema startup; this
 operator is not a schema migration engine.
 
-## 5. Enroll and authorize while the backend is stopped
+## 6. Enroll and authorize while the backend is stopped
 
 Remove `enable_database_initializer` after verification. Keep backend desired
 count zero and independently confirm backend, workers and earlier maintenance
@@ -192,7 +233,7 @@ Remove the maintenance definition/authority by disabling
 deleting retained stores/secrets. Only then start the backend. Provider
 authorization does not select a model; choose one from that provider after login.
 
-## 6. Start and activate
+## 7. Start and activate
 
 
 Set `desired_count = 1` with `service_desired_counts = { backend = 0 }`
@@ -215,7 +256,7 @@ Confirm the activation helper has terminated,
 then verify controller readiness, ALB targets and signed-out HTTPS.
 
 
-## 7. Verify the result
+## 8. Verify the result
 
 Sign in, create a chat, obtain a real model response and harmless tool result,
 reload retained history and check attachments if enabled. Verify one executor per

@@ -64,6 +64,7 @@ variable "application" {
     configuration_revision         = string
     database_ca_pem                = string
     backend_ca_pem                 = string
+    callback_ca_pem                = optional(string)
     backend_certificate_pem        = string
     backend_private_key_secret_arn = string
     database_url_secret_arns = object({
@@ -99,4 +100,54 @@ variable "deregistration_delay_seconds" {
 variable "idle_timeout_seconds" {
   type    = number
   default = 300
+}
+
+variable "domain" {
+  description = "Final application hostname and existing public Route 53 hosted zone. Null prepares foundation without managed ingress."
+  type        = object({ name = string, zone_id = string })
+  default     = null
+}
+variable "database_mode" {
+  type    = string
+  default = "aurora-serverless"
+}
+variable "aurora_engine_version" {
+  type    = string
+  default = "18.6.1"
+}
+variable "aurora_min_capacity" {
+  type    = number
+  default = 0.5
+}
+variable "aurora_max_capacity" {
+  type    = number
+  default = 4
+}
+variable "enable_tracing" {
+  type    = bool
+  default = true
+}
+
+variable "frontend_release_prefix" {
+  description = "Immutable SPA release prefix; publish and verify the complete bundle before selecting a new prefix."
+  type        = string
+  default     = "releases/initial"
+}
+variable "trace_sample_ratio" {
+  type    = number
+  default = 0.1
+}
+variable "access_log_retention_days" {
+  type    = number
+  default = 7
+}
+
+variable "worker_capacity_provider" {
+  description = "FARGATE_SPOT is opt-in for workers only and needs interruption/recovery qualification."
+  type        = string
+  default     = "FARGATE"
+}
+variable "log_retention_days" {
+  type    = number
+  default = 7
 }
