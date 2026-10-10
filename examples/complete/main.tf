@@ -21,6 +21,7 @@ module "dispatch" {
   worker_image                = var.worker_image
   worker_package_installation = var.worker_image != null
   cpu_architecture            = var.cpu_architecture
+  image_pull_repository_arns  = var.image_pull_repository_arns
   application                 = var.application
 
   certificate_arn                  = var.certificate_arn
@@ -35,6 +36,8 @@ module "dispatch" {
   service_desired_counts        = var.service_desired_counts
   desired_count                 = var.desired_count
   service_deployment_mode       = var.service_deployment_mode
+  deregistration_delay_seconds  = var.deregistration_delay_seconds
+  idle_timeout_seconds          = var.idle_timeout_seconds
   enable_database_initializer   = var.enable_database_initializer
   enable_credential_maintenance = var.enable_credential_maintenance
 }

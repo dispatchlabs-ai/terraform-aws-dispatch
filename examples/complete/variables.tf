@@ -87,3 +87,16 @@ variable "service_desired_counts" {
   type    = map(number)
   default = {}
 }
+
+variable "image_pull_repository_arns" {
+  type    = set(string)
+  default = []
+}
+variable "deregistration_delay_seconds" {
+  type    = number
+  default = 30
+}
+variable "idle_timeout_seconds" {
+  type    = number
+  default = 300
+}

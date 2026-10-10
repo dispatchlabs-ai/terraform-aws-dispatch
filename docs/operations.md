@@ -35,8 +35,9 @@ Database-changing or destructive maintenance needs its own reviewed procedure.
 
 Controller-only replacement is not installation drain and must leave conversation
 workers running. Rolling uses handover-capable images and private role-scoped
-peer communication; stop-first allows bounded downtime. Short configurable drain
-budgets affect cleanup, not authority to overlap conversation executors.
+peer communication; stop-first allows bounded downtime. `deregistration_delay_seconds` defaults to 30 and `idle_timeout_seconds` to
+300. The caller may deliberately select shorter development values accepting
+interrupted requests; these budgets affect cleanup, not authority to overlap conversation executors.
 Observe readiness/time-to-serving and actual predecessor STOPPED separately.
 
 A new worker task-definition revision does not update existing tasks. Explicitly

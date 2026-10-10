@@ -24,8 +24,8 @@ These are independent publication steps, not automatic consequences of creating
 a GitHub repository. Git source with a pinned full commit also works without a
 registry. Private sources require explicitly granted access.
 
-Before publishing, choose a module license explicitly, check its compatibility
-with the extracted source, and review the full public tree for private identities,
+The module uses the [MIT license](../LICENSE). Before publishing, check extracted
+source/license compatibility and review the full public tree for private identities,
 secret values and customer-specific material. Do not assume a source-code license
 or public visibility from a publishing convention.
 

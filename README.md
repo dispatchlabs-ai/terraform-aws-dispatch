@@ -12,6 +12,8 @@ registration and an independently qualified fresh-account installation are not
 established by this source. Do not use sample identities or fabricated image
 digests to activate tasks.
 
+Licensed under [MIT](LICENSE).
+
 ## Start here
 
 - [Complete caller example](examples/complete/README.md)

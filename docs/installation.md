@@ -117,7 +117,83 @@ Remove the temporary initializer definition/authority after successful bootstrap
 without deleting stores or secrets. The application owns schema startup; this
 operator is not a schema migration engine.
 
-## 5. Start, activate and enroll
+## 5. Enroll and authorize while the backend is stopped
+
+Remove `enable_database_initializer` after verification. Keep backend desired
+count zero and independently confirm backend, workers and earlier maintenance
+tasks STOPPED. Set `enable_credential_maintenance = true`, review/apply its scoped
+definition, then refresh the caller outputs. The terminal receives **only** auth
+and provider credentials; it has no RDS master, activation token or application
+endpoint access. It uses its own maintenance cluster, not the worker cluster.
+
+The receipt helper deliberately does not launch this interactive task. Using
+AWS CLI v2 (with the Session Manager plugin) or your private AWS operator console,
+launch exactly one task from `credential_maintenance.task_definition_arn` in
+`credential_maintenance.cluster_arn`, with `private_subnet_ids`, its own
+`security_group_id`, public IP **disabled**, and ECS Exec enabled for this
+one-off terminal only. Retain the exact task ARN/client token privately before
+continuing; reconcile an uncertain launch instead of launching again. Check the
+volume initializer completed and the terminal container is running before Exec.
+
+Attach a private, unrecorded shell session to container `credential-maintenance`:
+
+```sh
+aws ecs execute-command --cluster "$MAINTENANCE_CLUSTER_ARN" \
+  --task "$MAINTENANCE_TASK_ARN" --container credential-maintenance \
+  --interactive --command /bin/bash --region "$AWS_REGION"
+```
+
+Those variables are nonsecret identifiers from caller outputs/the confirmed task.
+The cluster disables session-output logging and the terminal container has no
+container logging. ECS Exec **command strings remain audited**: pass only the
+shell command, never an email, invitation, token, OAuth URL/code or credential.
+Disable shell history/session capture inside this private terminal. Check the
+actual effective UID: Exec runs as root despite the configured container UID.
+Materialize and invoke the CLI under the same effective UID; don't chown existing
+inputs or reuse another task's bootstrap directory.
+
+Inside the first fresh terminal task, read the intended account address privately
+into `ACCOUNT_EMAIL`, then run:
+
+```sh
+# Run only inside the private terminal, not as an ECS command override.
+HISTFILE=/dev/null
+set +o history
+read -r -s -p 'Account email: ' ACCOUNT_EMAIL; printf '\n'
+dispatch-bootstrap auth invite \
+  --auth-store-config /tmp/dispatch-bootstrap/auth.json --email "$ACCOUNT_EMAIL"
+unset ACCOUNT_EMAIL
+```
+
+This explicitly selects PostgreSQL; omitting `--auth-store-config` could silently
+select task-local SQLite. Deliver the single-use invitation privately, never in
+logs/receipts. Let the CLI close its store, exit the session, stop that exact
+terminal task and confirm STOPPED before another maintenance invocation.
+
+For provider authorization, launch a **separate fresh** maintenance task/session
+with the same retained inputs and stopped-backend check. Inside it, use:
+
+```sh
+dispatch-bootstrap provider-auth login --provider openai-codex --type oauth \
+  --config /tmp/dispatch-bootstrap/provider.json --confirm-backend-retired
+```
+
+Select the provider/type that your installation actually uses; the Codex command
+is an example, not an account eligibility promise. Answer secret prompts only in
+this unrecorded TTY. Device-code verification requires an authorized human; never
+copy a developer's Pi login or expose loopback callback ports publicly. Let the
+CLI finish and close its store, then stop and confirm that terminal task. A second
+bootstrap in the same task is intentionally refused because its private directory
+already exists. If login fails or is cancelled, await CLI exit and confirm task
+termination before starting the backend. Do not force owner recovery to skip this.
+
+Remove the maintenance definition/authority by disabling
+`enable_credential_maintenance` and reviewing/applying its removal plan, without
+deleting retained stores/secrets. Only then start the backend. Provider
+authorization does not select a model; choose one from that provider after login.
+
+## 6. Start and activate
+
 
 Set `desired_count = 1` with `service_desired_counts = { backend = 0 }`
 while starting the launcher; verify its selected worker definition/revision and
@@ -138,14 +214,8 @@ started. Observe that receipt read-only until successful termination.
 Confirm the activation helper has terminated,
 then verify controller readiness, ALB targets and signed-out HTTPS.
 
-Provision the first account using the released `dispatch-auth` operator command
-with the same company/origin/store settings. Deliver invitation links privately;
-they are secrets and must not appear in task logs or receipts. Configure separate
-installation model authorization rather than copying a developer's Pi login.
-Provider authorization is not model selection: choose a model from the authorized
-provider afterward. Hosted OAuth challenges require an authorized human.
 
-## 6. Verify the result
+## 7. Verify the result
 
 Sign in, create a chat, obtain a real model response and harmless tool result,
 reload retained history and check attachments if enabled. Verify one executor per
