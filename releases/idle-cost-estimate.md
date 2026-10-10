@@ -4,7 +4,7 @@
 us-east-1, 730 hours/month, ARM64, public On-Demand rates; no free tiers or credits.
 Rate sources and general exclusions are in the [baseline estimate](cost-estimate.md#rate-evidence-and-reproduction).
 
-The low-idle design retains one private ALB for managed-domain CloudFront ingress
+The **provisional** low-idle design retains one private ALB for managed-domain CloudFront ingress
 and private control/callback listeners. Tasks use public IPv4 for outbound access,
 with ingress restricted by security-group references; the database remains private.
 No NAT gateway, additional wake service or RDS Proxy is assumed. The selected wake
@@ -38,6 +38,22 @@ pausing Aurora leaves **$79.65/month** fixed/assumed-storage. Keeping controller
 and the database awake on the new single-ALB/public-IP network instead costs
 **$111.86/month**, before workers and usage, assuming Aurora remains at 0.5 ACU.
 Browser inactivity alone does not stop tasks or establish eligibility for sleep.
+
+### Installation floor versus conversation cost
+
+This is the cost of **one isolated installation**, not the incremental cost of a
+sleeping conversation behind a control plane that someone else already pays for.
+A fully retired conversation has no ECS task and no task IP, but its retained
+history still consumes storage and the installation's shared resources remain.
+Dividing an ALB/controller bill across many conversations does not remove that
+bill. Consolidating multiple installations onto shared infrastructure would change
+ownership and isolation boundaries; it is not assumed or implemented here.
+
+The $26.73 scenario is therefore **not a demonstrated minimum**. It retains the
+requested dedicated ALB and managed PostgreSQL topology. Removing the last ALB
+would eliminate $16.425/month before LCU usage, but requires a separately reviewed
+ingress design that preserves HTTPS, authentication, streaming and private control
+paths. Deleting/recreating an ALB for every sleep cycle is not this proposal.
 
 ## Active-use scenarios
 
