@@ -86,11 +86,14 @@ completed final configuration/lifecycle source review of `0edd7f1` without a
 blocking finding; container hardening, scope separation and no-replay handling
 remain intact. That review is not ECS or fresh-install qualification.
 
-Earlier module-only Git archives at `af8655b` independently initialized/validated
-an external caller under Terraform 1.13.5 and OpenTofu 1.12.6/provider 6.67.0, as
-reported by Deployer. Final-revision external-caller rechecking is pending; this
-earlier result does not automatically qualify later source. Documenter's separate
-Terraform 1.13.5 caller init/validate passed before the final activation/mock fix.
+Independent consumer verification also passed at **`0edd7f1`**: Deployer used
+module-only Git archives and a separately copied complete caller under Terraform
+**1.13.5** and OpenTofu **1.12.6**, with AWS provider **6.67.0**. Caller
+init/validate, all eight mock plans per engine and all 17 offline helper tests
+passed. Documenter inspected the retained check logs. Both engine processes used
+temporary HOME/credential-empty environments; no application checkout, AWS API,
+apply, image pull or customer access was used. This closes the external-caller
+**source** check, not the live fresh-install acceptance above.
 
 **Remaining acceptance:** actual public image pulls, registry registration,
 fresh-account AWS initialization/activation, private enrollment/provider terminal,
