@@ -151,3 +151,14 @@ variable "log_retention_days" {
   type    = number
   default = 7
 }
+
+variable "task_egress" {
+  description = "public-ip avoids permanent NAT costs; task ingress remains security-group restricted. nat places tasks privately behind NAT."
+  type        = string
+  default     = "public-ip"
+}
+variable "aurora_seconds_until_auto_pause" {
+  description = "Connection-free pause interval when aurora_min_capacity is zero; does not stop Dispatch owners."
+  type        = number
+  default     = 300
+}

@@ -20,14 +20,22 @@ viewer certificate. The viewer origin is `https://<domain.name>`; it must match
 private S3/OAC serves the SPA. Do not add a public API-origin bypass.
 Validate regional availability and network reachability for image pulls, logs,
 tracing and selected model/MCP providers before reviewing the plan.
+`task_egress = "public-ip"` places running tasks in public subnets with public IPv4
+for outbound access, avoiding a permanent NAT gateway. Task ingress remains
+security-group restricted; ALB/database stay private. `"nat"` keeps tasks privately
+placed behind NAT. This choice applies to ordinary and maintenance tasks.
 
 ## 2. Apply foundation only
 
 Keep `application`, `image` and `worker_image` null, `desired_count = 0`, and
 operator-task switches false. Review the actual saved plan/cost, then apply.
-PostgreSQL, NAT, storage and other foundation resources incur costs at zero tasks.
+ALB, database storage, secrets, DNS and other retained foundation resources incur
+costs at zero tasks; the optional NAT mode adds permanent NAT/EIP charges.
 `database_mode = "aurora-serverless"` defaults to a writer with 0.5–4 ACUs, no
-reader/proxy or automatic pause. The alternative `"rds"` preserves small
+reader/proxy. For auto-pause eligibility select `aurora_min_capacity = 0` and
+`aurora_seconds_until_auto_pause` (300–86400 seconds; default 300). Every Dispatch
+and maintenance database owner must close its connections before the idle interval
+can begin; no queries does not mean no connections. The alternative `"rds"` preserves small
 provisioned PostgreSQL. Review the dated regional cost comparison and workload
 assumptions; retained owner connections matter and serverless is not automatically
 cheapest. Select a region-supported pinned database version, not an unverified
@@ -69,7 +77,7 @@ and the separate launcher journal; do not substitute a partial map that could
 fall back to disposable SQLite.
 
 For the managed domain, regional ACM covers `callbacks.<domain.name>` and private
-DNS resolves it to the callback listener; workers must trust its public ACM CA
+DNS resolves it to the isolated callback listener on port **8443**; workers must trust its public ACM CA
 chain through `callback_ca_pem`. This is separate from your private backend peer
 leaf/CA and CloudFront viewer certificate. Never send peer private keys to ACM.
 For the caller-owned certificate alternative, the private callback certificate
@@ -197,8 +205,9 @@ endpoint access. It uses its own maintenance cluster, not the worker cluster.
 The receipt helper deliberately does not launch this interactive task. Using
 AWS CLI v2 (with the Session Manager plugin) or your private AWS operator console,
 launch exactly one task from `credential_maintenance.task_definition_arn` in
-`credential_maintenance.cluster_arn`, with `private_subnet_ids`, its own
-`security_group_id`, public IP **disabled**, and ECS Exec enabled for this
+`credential_maintenance.cluster_arn`, with `task_subnet_ids`, its own
+`security_group_id`, and `assignPublicIp` set to `ENABLED` when
+`task_assign_public_ip` is true (`DISABLED` otherwise). Enable ECS Exec for this
 one-off terminal only. Retain the exact task ARN/client token privately before
 continuing; reconcile an uncertain launch instead of launching again. Check the
 volume initializer completed and the terminal container is running before Exec.

@@ -2,17 +2,23 @@
 
 ## Costs and availability
 
-Start with the [dated regional estimate](../releases/cost-estimate.md): roughly
-**$166/month before workers/inference** for its stated modest-traffic ARM64
-scenario, not a quote or spend ceiling. This is a cost-conscious baseline, not
-a demonstrated cost optimum. Small RDS reduces that scenario by about
-$20/month but removes automatic compute scaling. Review actual regional prices
-and the saved caller plan. RDS, NAT/EIP, public and
-private ALBs, running controller/worker tasks, logs, S3 and image storage can incur
-charges. Zero controller counts do not stop foundation costs. The baseline has
-one NAT gateway, not multi-AZ egress availability; two subnets alone do not imply
-HA. Worker activity adds compute and database connections. This module is not a
-production capacity, recovery or security certification.
+Use the [dated regional estimate](../releases/cost-estimate.md), its architecture,
+workload and duty-cycle assumptions—not a quote or spend ceiling. The earlier
+~$166/month scenario includes NAT/two ALBs and continuously running controllers;
+it is not the new profile's sleeping price. Small RDS removes Aurora's automatic
+compute scaling/auto-pause, even when cheaper for a continuously running workload.
+
+`task_egress = "public-ip"` avoids permanent NAT costs; public IPv4 is billed only
+while each task runs. Security groups still restrict ingress and the managed-domain
+ALB/database remain private. Managed ingress shares one ALB with isolated ports:
+443 viewer API, 8830 launcher control, 8443 worker callbacks. A caller-owned public
+API ALB retains separate private control ingress. Optional `"nat"` mode uses one
+NAT gateway, not multi-AZ egress availability. Two subnets do not imply HA.
+
+Zero controller counts do not stop retained ALB/storage/DNS/secrets costs. Aurora
+can pause only after all database connections close, not merely when queries stop.
+Worker activity adds compute, IPv4 charges and database connections. This module
+is not a production capacity, recovery or security certification.
 
 ## Authority
 
@@ -50,6 +56,22 @@ retire an existing conversation attempt and confirm actual ECS termination befor
 its replacement adopts the new image. StopTask acknowledgement, missing inventory,
 expired leases and lost connections are not termination proof. Reconcile the same
 immutable attempt after uncertainty; never silently allocate another one.
+
+## Idle sleep and wake boundaries
+
+The low-idle networking/zero-ACU inputs do not themselves retire application tasks.
+Sleep/wake for this slice is explicitly IAM operator-driven, not automatic browser
+wake or a background idle scheduler. Session authentication currently reads
+PostgreSQL; contacting it can resume Aurora before user validation succeeds.
+
+**Do not use the existing `/internal/drain` as proof of harmless idle shutdown:**
+it cancels work. Non-cancelling sleep requires sealed admission and native task /
+unsettled-submission inspection, including background work; busy or unknown state
+must refuse sleep. `waitForIdle()` alone excludes background tasks. Until that gate
+and the operator procedure are implemented/reviewed, safe idle sleep remains
+unavailable—not an achieved $27/month runtime result. Never clear recovery latches
+or replay uncertain writes to make wake succeed. Review connection deadlines and
+report complete controller/database readiness, not only Aurora's advertised resume.
 
 ## Maintenance and recovery
 
@@ -92,7 +114,9 @@ sampled tracing. These are source features, not live AWS or zero-downtime proof.
   manages CloudFront's certificate. The API origin is private; viewer routes must
   never expose operator maintenance or private callbacks. Upload verified static
   release bundles separately; an apply does not publish the SPA.
-- Aurora uses 0.5–4 ACUs by default, no reader/proxy/auto-pause. `database_mode =
+- Aurora uses 0.5–4 ACUs by default, no reader/proxy. Set `aurora_min_capacity = 0`
+  for eligible auto-pause after `aurora_seconds_until_auto_pause` (300 by default),
+  with all application/maintenance connections closed. `database_mode =
   "rds"` is the small provisioned alternative. Changing mode is not a migration.
   Region/version availability, real connection loss and cost need qualification;
   retained owner connections prevent assuming an auto-pausing idle workload.

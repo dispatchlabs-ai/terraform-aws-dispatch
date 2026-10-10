@@ -12,8 +12,13 @@ two distinct zones) and `vpc_cidr`. Before managed ingress, supply `domain.name`
 and its existing public Route 53 `zone_id`. The example passes both the regional
 AWS provider and `aws.edge` in `us-east-1`; deploy the CloudFront viewer certificate
 there even when your application region differs. No example account, domain, certificate, secret
-or image is deployable by default. Foundation still creates billable resources. Aurora defaults to 0.5–4 ACUs
-without auto-pause; review the provisioned `database_mode = "rds"` alternative and
+or image is deployable by default. Foundation still creates billable resources. Tasks default to `task_egress =
+"public-ip"`, avoiding permanent NAT charges while preserving private ALB/database
+and security-group-restricted task ingress. Public IPv4 is billed while tasks run;
+`"nat"` instead keeps tasks privately placed behind a billable NAT gateway.
+Aurora defaults to 0.5–4 ACUs; select `aurora_min_capacity = 0` with
+`aurora_seconds_until_auto_pause = 300` for connection-free auto-pause eligibility.
+Running owners still prevent pause; review the provisioned `database_mode = "rds"` alternative and
 [regional/workload cost comparison](../../releases/cost-estimate.md). No EFS or durable workspace is created.
 
 ```sh
@@ -41,3 +46,10 @@ For CloudFront, publish the trusted released SPA bundle using the explicit
 [publication helper](../../releases/README.md#spa-bundle-and-publication) **before**
 selecting its emitted `frontend_release_prefix`. Assets remain shared append-only;
 HTML is release-prefixed. Terraform never builds/uploads frontend content.
+
+Use `task_subnet_ids` and `task_assign_public_ip` for operator launches, not hardcoded
+private subnets/public-IP disabling. The private subnet output remains available
+for database/network consumers, not as the selected task placement contract.
+Managed-domain ingress shares one private ALB with isolated listener ports:
+443 viewer API, 8830 launcher control and 8443 worker callbacks. A caller-owned
+public API ALB retains separate private control ingress.

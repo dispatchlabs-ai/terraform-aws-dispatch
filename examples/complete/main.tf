@@ -24,16 +24,18 @@ module "dispatch" {
   availability_zones      = var.availability_zones
   vpc_cidr                = var.vpc_cidr
   tags                    = var.tags
+  task_egress             = var.task_egress
   domain                  = var.domain
   frontend_release_prefix = var.frontend_release_prefix
 
-  database_mode             = var.database_mode
-  aurora_engine_version     = var.aurora_engine_version
-  aurora_min_capacity       = var.aurora_min_capacity
-  aurora_max_capacity       = var.aurora_max_capacity
-  enable_tracing            = var.enable_tracing
-  trace_sample_ratio        = var.trace_sample_ratio
-  access_log_retention_days = var.access_log_retention_days
+  database_mode                   = var.database_mode
+  aurora_engine_version           = var.aurora_engine_version
+  aurora_min_capacity             = var.aurora_min_capacity
+  aurora_max_capacity             = var.aurora_max_capacity
+  aurora_seconds_until_auto_pause = var.aurora_seconds_until_auto_pause
+  enable_tracing                  = var.enable_tracing
+  trace_sample_ratio              = var.trace_sample_ratio
+  access_log_retention_days       = var.access_log_retention_days
 
   image                       = var.image
   worker_image                = var.worker_image
@@ -68,6 +70,8 @@ output "database_master_secret_arn" { value = module.dispatch.database_master_se
 output "service_cluster_arn" { value = module.dispatch.service_cluster_arn }
 output "worker_cluster_arn" { value = module.dispatch.worker_cluster_arn }
 output "private_subnet_ids" { value = module.dispatch.private_subnet_ids }
+output "task_subnet_ids" { value = module.dispatch.task_subnet_ids }
+output "task_assign_public_ip" { value = module.dispatch.task_assign_public_ip }
 output "worker_task_definition_arn" { value = module.dispatch.worker_task_definition_arn }
 output "database_initializer" { value = module.dispatch.database_initializer }
 output "activation" { value = module.dispatch.activation }
