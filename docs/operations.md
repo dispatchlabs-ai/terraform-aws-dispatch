@@ -90,7 +90,10 @@ workers through existing launcher termination evidence. **`/internal/drain`
 cancels work and is not a safe idle gate.** `waitForIdle()` alone is insufficient.
 Only successful quiescence authorizes backend scale-down, confirmed captured-task
 `STOPPED`, then launcher scale-down/confirmation. Support callbacks stay open
-while admitted work finishes. A busy/unknown result must not stop controllers;
+while admitted work finishes. Planned-quiescence health may remain green while
+new-work admission is sealed; it does not mean idle or publicly serving. Cold drain,
+lost ownership and unhealthy stores must still fail normal health/readiness.
+A busy/unknown result must not stop controllers;
 partial refusal can already have retired idle workers. Reconcile state, then use
 explicit private activation/undrain to reopen surviving admission when safe.
 
