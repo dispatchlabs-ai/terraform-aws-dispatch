@@ -250,3 +250,20 @@ run "managed_domain_baseline" {
     error_message = "Managed delivery needs API-only backend and private stable callbacks."
   }
 }
+
+run "empty_modes_have_rolling_peer_paths" {
+  command = plan
+  variables { service_deployment_mode = {} }
+  assert {
+    condition     = toset([for key in keys(aws_vpc_security_group_ingress_rule.private) : key if endswith(key, "_peer")]) == toset(["backend_peer", "launcher_peer"])
+    error_message = "Omitted modes must retain rolling peer paths for both controllers."
+  }
+}
+run "partial_modes_keep_launcher_rolling_path" {
+  command = plan
+  variables { service_deployment_mode = { backend = "stop-first" } }
+  assert {
+    condition     = toset([for key in keys(aws_vpc_security_group_ingress_rule.private) : key if endswith(key, "_peer")]) == toset(["launcher_peer"])
+    error_message = "An omitted launcher mode is rolling and needs its peer path."
+  }
+}

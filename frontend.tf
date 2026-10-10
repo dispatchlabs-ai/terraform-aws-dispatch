@@ -132,6 +132,11 @@ resource "aws_cloudfront_distribution" "frontend" {
     origin_access_control_id = aws_cloudfront_origin_access_control.frontend[0].id
   }
   origin {
+    origin_id                = "assets"
+    domain_name              = aws_s3_bucket.frontend[0].bucket_regional_domain_name
+    origin_access_control_id = aws_cloudfront_origin_access_control.frontend[0].id
+  }
+  origin {
     origin_id   = "api"
     domain_name = "origin.${var.domain.name}"
     vpc_origin_config {
@@ -151,6 +156,15 @@ resource "aws_cloudfront_distribution" "frontend" {
       event_type   = "viewer-request"
       function_arn = aws_cloudfront_function.spa[0].arn
     }
+  }
+  ordered_cache_behavior {
+    path_pattern           = "/assets/*"
+    target_origin_id       = "assets"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+    cached_methods         = ["GET", "HEAD"]
+    cache_policy_id        = aws_cloudfront_cache_policy.static[0].id
+    compress               = true
   }
   dynamic "ordered_cache_behavior" {
     for_each = ["/api", "/api/*"]
@@ -193,7 +207,7 @@ resource "aws_s3_bucket_policy" "frontend" {
   count  = local.managed_domain ? 1 : 0
   bucket = aws_s3_bucket.frontend[0].id
   policy = jsonencode({ Version = "2012-10-17", Statement = [
-    { Effect = "Allow", Principal = { Service = "cloudfront.amazonaws.com" }, Action = "s3:GetObject", Resource = "${aws_s3_bucket.frontend[0].arn}/releases/*", Condition = { StringEquals = { "AWS:SourceArn" = aws_cloudfront_distribution.frontend[0].arn } } },
+    { Effect = "Allow", Principal = { Service = "cloudfront.amazonaws.com" }, Action = "s3:GetObject", Resource = ["${aws_s3_bucket.frontend[0].arn}/releases/*", "${aws_s3_bucket.frontend[0].arn}/assets/*"], Condition = { StringEquals = { "AWS:SourceArn" = aws_cloudfront_distribution.frontend[0].arn } } },
     { Effect = "Deny", Principal = "*", Action = "s3:*", Resource = [aws_s3_bucket.frontend[0].arn, "${aws_s3_bucket.frontend[0].arn}/*"], Condition = { Bool = { "aws:SecureTransport" = "false" } } }
   ] })
 }

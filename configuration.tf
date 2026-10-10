@@ -42,7 +42,7 @@ locals {
         operatorTokenFile = "${local.bootstrap_directory}/operator-token"
         launcherUrl       = local.generated_launcher_url
       })
-      }, lookup(var.service_deployment_mode, "backend", "rolling") == "rolling" ? {
+      }, local.controller_deployment_mode.backend == "rolling" ? {
       "controller.json" = jsonencode({
         databaseConfigFile = "${local.bootstrap_directory}/routing.json"
         tokenFile          = "${local.bootstrap_directory}/backend-peer-token"
@@ -75,7 +75,7 @@ locals {
           environment           = { DISPATCH_BACKEND_INTERNAL_URL = local.generated_callback_url }
         }
       })
-      }, lookup(var.service_deployment_mode, "launcher", "rolling") == "rolling" ? {
+      }, local.controller_deployment_mode.launcher == "rolling" ? {
       "controller-database.json" = jsonencode({
         installationId  = app.installation_id
         databaseUrlFile = "${local.bootstrap_directory}/launcher-db-url"
@@ -108,13 +108,13 @@ locals {
       { for store, arn in app.encryption_key_secret_arns : "${store}-key" => { arn = arn, encoding = "base64" } },
       { for name in ["worker", "launcher", "operator"] : "${name}-token" => { arn = app.token_secret_arns[name], encoding = "utf8" } },
       { "backend-key.pem" = { arn = app.backend_private_key_secret_arn, encoding = "utf8" } },
-      lookup(var.service_deployment_mode, "backend", "rolling") == "rolling" ? { "backend-peer-token" = { arn = app.token_secret_arns.backend_peer, encoding = "utf8" } } : {}
+      local.controller_deployment_mode.backend == "rolling" ? { "backend-peer-token" = { arn = app.token_secret_arns.backend_peer, encoding = "utf8" } } : {}
     )
     launcher = merge({
       "launcher-db-url" = { arn = app.database_url_secret_arns.launcher, encoding = "utf8" }
       "launcher-token"  = { arn = app.token_secret_arns.launcher, encoding = "utf8" }
       "worker-token"    = { arn = app.token_secret_arns.worker, encoding = "utf8" }
-    }, lookup(var.service_deployment_mode, "launcher", "rolling") == "rolling" ? { "launcher-peer-token" = { arn = app.token_secret_arns.launcher_peer, encoding = "utf8" } } : {})
+    }, local.controller_deployment_mode.launcher == "rolling" ? { "launcher-peer-token" = { arn = app.token_secret_arns.launcher_peer, encoding = "utf8" } } : {})
     initializer = merge({ for store, arn in app.database_url_secret_arns : "${store}-db-url" => { arn = arn, encoding = "utf8" } }, {
       "rds-master.json" = { arn = local.database_master_secret_arn, encoding = "utf8" }
     })

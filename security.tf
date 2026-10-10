@@ -21,7 +21,7 @@ locals {
     backend_launcher = { from = "backend", to = "launcher", port = 8830 }
     backend_worker   = { from = "backend", to = "worker", port = 8831 }
     }, {
-    for role, mode in var.service_deployment_mode : "${role}_peer" => {
+    for role, mode in local.controller_deployment_mode : "${role}_peer" => {
       from = role, to = role, port = role == "backend" ? 3001 : 8830
     } if mode == "rolling"
     }, var.launcher_internal_alb ? {
@@ -117,7 +117,7 @@ resource "aws_iam_role_policy" "launcher" {
   role  = aws_iam_role.task["launcher"].id
   policy = jsonencode({ Version = "2012-10-17", Statement = [
     { Effect   = "Allow", Action = ["ecs:RunTask"],
-      Resource = lookup(var.service_deployment_mode, "launcher", "rolling") == "rolling" ? "arn:${data.aws_partition.current.partition}:ecs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.name}-worker:*" : aws_ecs_task_definition.worker[0].arn,
+      Resource = local.controller_deployment_mode.launcher == "rolling" ? "arn:${data.aws_partition.current.partition}:ecs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.name}-worker:*" : aws_ecs_task_definition.worker[0].arn,
     Condition = { ArnEquals = { "ecs:cluster" = aws_ecs_cluster.workers.arn } } },
     { Effect   = "Allow", Action = ["ecs:DescribeTasks", "ecs:StopTask"],
       Resource = "arn:${data.aws_partition.current.partition}:ecs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:task/${aws_ecs_cluster.workers.name}/*",
