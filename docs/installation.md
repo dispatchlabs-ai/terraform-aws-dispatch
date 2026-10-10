@@ -95,10 +95,12 @@ fabricated archive or an unrelated local build.
 The caller exports `frontend_bucket`, `frontend_distribution_id` and
 `frontend_release_prefix`; supply a versioned `frontend_release_prefix` such as
 `releases/<release-id>`, not a customer identity or a mutable "latest" prefix.
-Publication is an explicit operator action outside Terraform. Upload into the
-immutable release prefix returned for the frontend bucket. On first foundation, the empty bucket/distribution is not a serving installation;
+Publication is an explicit operator action outside Terraform. Publish hash-named `/assets/*` into the stable append-only asset location and
+index/release metadata into the immutable frontend release prefix. Merely keeping
+old prefixes does not preserve an open client's absolute `/assets/<hash>` URLs. On first foundation, the empty bucket/distribution is not a serving installation;
 finish publication before enrollment/readiness acceptance. For updates, stage the
-full next bundle before selecting its prefix in the serving distribution; never overwrite a
+full next bundle and its shared assets before selecting the index prefix in the
+serving distribution; never overwrite a
 serving prefix or delete earlier releases. Hash-named assets may be cached;
 `index.html` needs short/no-cache policy. Keep the prior compatible prefix for
 rollback. Review source-controlled frontend and backend release identities
@@ -108,7 +110,11 @@ CloudFront routes `/api` and `/api/*` to the private ALB with caching disabled,
 while a static-only rewrite handles SPA navigation. Verify authenticated errors
 remain API errors, cookies and the original request origin reach the backend,
 and SSE streams are not converted into cached or buffered static responses.
-Private activation and callback paths must never become viewer routes.
+Private activation and worker callback paths must never become viewer routes.
+The public MCP OAuth callback remains `/api/connections/oauth/callback`: CloudFront
+strips its GET query before the ALB, not from the browser address. Callback HTML
+reads the browser URL and POSTs completion JSON; other API queries remain intact.
+Verify that flow separately before declaring real provider authorization works.
 
 ## 5. Initialize and verify explicitly
 

@@ -110,6 +110,8 @@ those earlier passes do not qualify the added infrastructure. Record separate
 source checks and actual runtime evidence for:
 
 - ALB access-log delivery/lifecycle, ACM validation and Route 53 routing.
+- Stable append-only hashed-asset URLs across frontend index-prefix changes;
+  retained old directories alone do not preserve absolute `/assets/<hash>` URLs.
 - CloudFront SPA/assets delivery without authenticated-response caching, lost
   cookies/origin checks, API error-to-index rewriting or broken SSE streaming.
 - Rolling controllers without unnecessary worker replacement; Spot interruption
@@ -131,3 +133,27 @@ ALB/LCUs, NAT/data transfer, CloudFront, DNS, S3 and storage/backup costs. State
 architecture/task sizing, expected ACU-hours, retained connections and exclusions.
 Separate AWS usage costs from model/MCP charges, taxes and discounts; do not
 present a sizing estimate as an invoice or a universal cheapest configuration.
+
+
+## Baseline source checkpoint — October 10, 2026
+
+At module `ae4ef52`, Documenter inspected Developer's integrated `make check`
+output: OpenTofu **1.13.1** and Terraform **1.13.5**, AWS provider **6.67.0**,
+format/init/validate and **18 mock plans** per engine passed. The same output
+records **17 Python helper checks**, activation syntax and offline edge-function
+checks. The edge fixture verifies static rewriting, maintenance refusal, preserved
+ordinary API queries and OAuth callback GET-query removal before ALB logging.
+Browser URLs stay unchanged; callback completion uses the existing HTML's POST.
+No mock applies, AWS calls or browser/provider authorization were exercised.
+
+Application `3dff8d6` integrates Spot/telemetry, backend SPA opt-out and the explicit
+PostgreSQL 17/18 initializer allowance. Pi reports Nix-shell application checks,
+Apple Silicon Nix build, flake evaluation and source/whitespace review passed for
+slice `f5c9674`; these are owner-reported build/source results, not runtime evidence.
+
+Cost estimates, released-frontend tooling and the final independent external
+caller recheck remain completion dependencies at this checkpoint. Source checks
+do not qualify CloudFront/VPC-origin availability, actual log/trace delivery,
+Aurora initialization/failover, Spot interruption, provider login or zero-downtime
+browser/SSE/worker continuity. Public distribution and live installation remain
+separate, unverified acceptance.

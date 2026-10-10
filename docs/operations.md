@@ -102,6 +102,12 @@ sampled tracing. These are source features, not live AWS or zero-downtime proof.
   paths/query strings:** unlike sanitized application spans, they are not a
   credential-safe transcript. Restrict bucket reads and keep invitation/OAuth
   material out of public URLs wherever possible. Lifecycle expiry is asynchronous.
+  The API
+  viewer-request function strips query parameters **only** from GET
+  `/api/connections/oauth/callback` before forwarding to the ALB. The browser URL
+  remains intact: its callback HTML reads the response and POSTs completion JSON.
+  Ordinary API queries are preserved. This protects that callback's codes from
+  ALB access logs, not browser history, future CDN viewer logs or arbitrary URLs.
 - ADOT collectors receive OTLP on task loopback and export to X-Ray with write-only
   task permissions. `trace_sample_ratio = 0.1` bounds root sampling; `enable_tracing`
   disables/enables ordinary task collection. X-Ray retains traces for its fixed
