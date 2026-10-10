@@ -5,3 +5,6 @@
 *.tfvars
 !examples/**/*.tfvars.example
 .local/
+
+__pycache__/
+*.pyc
