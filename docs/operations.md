@@ -2,8 +2,9 @@
 
 ## Costs and availability
 
-Use the [dated regional estimate](../releases/cost-estimate.md), its architecture,
-workload and duty-cycle assumptions—not a quote or spend ceiling. The earlier
+Use the [baseline estimate](../releases/cost-estimate.md) and
+[provisional idle/active comparison](../releases/idle-cost-estimate.md), their
+architecture, workload and duty-cycle assumptions—not a quote or spend ceiling. The earlier
 ~$166/month scenario includes NAT/two ALBs and continuously running controllers;
 it is not the new profile's sleeping price. Small RDS removes Aurora's automatic
 compute scaling/auto-pause, even when cheaper for a continuously running workload.

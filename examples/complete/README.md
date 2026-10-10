@@ -19,7 +19,7 @@ and security-group-restricted task ingress. Public IPv4 is billed while tasks ru
 Aurora defaults to 0.5–4 ACUs; select `aurora_min_capacity = 0` with
 `aurora_seconds_until_auto_pause = 300` for connection-free auto-pause eligibility.
 Running owners still prevent pause; review the provisioned `database_mode = "rds"` alternative and
-[regional/workload cost comparison](../../releases/cost-estimate.md). No EFS or durable workspace is created.
+[idle/active cost comparison](../../releases/idle-cost-estimate.md). No EFS or durable workspace is created.
 
 ```sh
 # Choose one engine consistently for your installation.

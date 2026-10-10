@@ -21,7 +21,7 @@ Licensed under [MIT](LICENSE).
 - [Complete caller example](examples/complete/README.md)
 - [Installation and activation](docs/installation.md)
 - [Security and retention](docs/operations.md)
-- [Regional cost estimates](releases/cost-estimate.md)
+- [Regional cost estimates](releases/cost-estimate.md) and [provisional idle/active comparison](releases/idle-cost-estimate.md)
 - [Release and acceptance contract](docs/releases.md)
 
 You supply the AWS provider/region and restricted state backend, final HTTPS
