@@ -135,38 +135,42 @@ Separate AWS usage costs from model/MCP charges, taxes and discounts; do not
 present a sizing estimate as an invoice or a universal cheapest configuration.
 
 
-## Baseline source checkpoint — October 10, 2026
+## Baseline source acceptance — October 10, 2026
 
-At module `ae4ef52`, Documenter inspected Developer's integrated `make check`
-output: OpenTofu **1.13.1** and Terraform **1.13.5**, AWS provider **6.67.0**,
-format/init/validate and **18 mock plans** per engine passed. The same output
-records **17 Python helper checks**, activation syntax and offline edge-function
-checks. The edge fixture verifies static rewriting, maintenance refusal, preserved
-ordinary API queries and OAuth callback GET-query removal before ALB logging.
-Browser URLs stay unchanged; callback completion uses the existing HTML's POST.
-No mock applies, AWS calls or browser/provider authorization were exercised.
+**Source implementation and cost estimates accepted; runtime/public distribution
+remain unqualified.** At `fc216e9`, independent module-only Git archives plus
+external callers passed init/validate and **20 mock plans per engine** under
+Terraform **1.13.5** and OpenTofu **1.12.6**, AWS provider **6.67.0**. **23 offline
+helper checks** and edge-function checks also passed. Documenter inspected these
+retained consumer logs. Both engines used temporary HOME/credential-empty
+contexts; no application checkout, AWS apply or customer access was needed.
+Developer's integrated checks also pass on OpenTofu **1.13.1**/Terraform **1.13.5**.
+Changes through `f040bd7` add documentation and the publisher-check Makefile entry,
+not different infrastructure. Mock plans are not cloud plans/applies.
 
-Application `3dff8d6` integrates Spot/telemetry, backend SPA opt-out and the explicit
-PostgreSQL 17/18 initializer allowance. Pi reports Nix-shell application checks,
-Apple Silicon Nix build, flake evaluation and source/whitespace review passed for
-slice `f5c9674`; these are owner-reported build/source results, not runtime evidence.
+Pi source-reviewed module `f6ff8d5` and application `4f48d7b` with no remaining
+blocking finding in scope. Rolling defaults share normalized peer-network rules,
+shared assets preserve old absolute chunk URLs, and only the outer HTTP boundary
+logs request summaries. Deslop reviewed those fixes and collector cost accounting
+without additional complexity blockers. Callback GET queries are removed before
+ALB logging while browser URLs/ordinary API queries remain unchanged; offline edge
+checks do not establish real provider authorization.
 
-Cost estimates, released-frontend tooling and the final independent external
-caller recheck remain completion dependencies at this checkpoint. Source checks
-do not qualify CloudFront/VPC-origin availability, actual log/trace delivery,
-Aurora initialization/failover, Spot interruption, provider login or zero-downtime
-browser/SSE/worker continuity. Public distribution and live installation remain
-separate, unverified acceptance.
+Application slices `f5c9674`/`8d91d98` passed owner-reported Nix-shell application,
+Apple Silicon Nix build, flake evaluation and source/whitespace review; no runtime
+tests. Deterministic `nix build .#frontend` packaging at `b888a1c` passed
+owner-reported build/flake checks. Deployer reports offline publisher verification
+of the actual **342-file** bundle and a network-disabled collector startup check,
+not public publication or AWS trace delivery. Documenter independently passed
+caller init/validate on Terraform 1.13.5/OpenTofu 1.13.1 and all 23 helper checks.
 
+The [regional estimate](../releases/cost-estimate.md) supplies dated prices,
+three-zone/accounting and workload assumptions, controller/collector headroom,
+Aurora/RDS comparison, worker/Spot scenarios and exclusions. It is planning
+evidence, not real billing or a universal cheapest configuration. Consumers use
+verified bundles/images; no application checkout or build is required.
 
-Cost and frontend tooling follow-up: the [regional planning estimate](../releases/cost-estimate.md)
-now includes three DNS zones, workload assumptions, controller/collector headroom,
-Aurora versus small RDS and On-Demand/hypothetical Spot worker scenarios. This
-satisfies the estimate/documentation dependency, not actual billing verification.
-Application `b888a1c` provides deterministic `nix build .#frontend` packaging;
-Deployer reports build/flake checks passed. Module `8797705` verifies trusted
-manifest/archive metadata and performs explicit receipt-backed conditional S3
-publication, with 23 reported offline helper checks. Public release consumers use
-the bundle, not the application checkout. Deployer also reports a network-disabled
-collector startup check; it does not establish AWS trace delivery. Final integrated
-source review and independent caller rechecking remain pending at this checkpoint.
+Actual CDN/API/SSE behavior, log/trace delivery, Aurora initialization/failover,
+Spot interruption, provider login, zero-downtime continuity and fresh-account
+installation remain **unverified**. Public artifacts/registry registration remain
+gated on the open-source release; source publication is not that qualification.

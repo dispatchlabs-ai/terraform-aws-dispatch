@@ -8,7 +8,7 @@ Serverless v2 (with a small-RDS alternative), managed ACM/Route 53, a CloudFront
 SPA/API entry point and sampled application tracing. Terraform registers the worker definition;
 Dispatch's launcher creates and retires conversation tasks.
 
-**Status:** source implementation; infrastructure-baseline extension in progress. This
+**Status:** source baseline implemented and offline-reviewed; live qualification pending. This
 repository is private pending the open-source release. Public images, registry
 registration and an independently qualified fresh-account installation are not
 established by this source. Do not use sample identities or fabricated image
