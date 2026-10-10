@@ -10,13 +10,15 @@ local Docker image IDs.
 The artifact selector and manifest contract are owned by
 [`releases/README.md`](../releases/README.md). Metadata validation is offline:
 it does not prove registry access, image contents or Fargate execution. Verify
-direct public-image pulls separately; optional customer ECR mirrors must retain
-verified digest identity. No fabricated manifest should stand in for publication.
+direct public-image pulls separately; customer ECR imports must verify
+configuration identity and record destination manifest digests. A registry
+representation change can change a manifest digest without changing the image
+configuration; do not substitute a local image ID. No fabricated manifest should stand in for publication.
 
 ## Publishing
 
-Keep the repository private until the authorized open-source release. The public
-module root follows `terraform-aws-dispatch` naming and standard module layout;
+The repository is now public; module tags and registry registration remain
+separate publication steps. The public module root follows `terraform-aws-dispatch` naming and standard module layout;
 use immutable semantic-version Git tags for released versions. Register it in the
 [Terraform Registry](https://developer.hashicorp.com/terraform/registry/modules/publish)
 and submit it to the [OpenTofu Registry](https://github.com/opentofu/registry#adding-providers-modules-or-gpg-keys-to-the-opentofu-registry).
@@ -41,6 +43,117 @@ versions in the release, including separate engine lockfile/evidence contexts.
 No public image combination or live fresh-install qualification is claimed by the
 initial source extraction. Public registry registration and artifact publication
 remain open-source-release work.
+
+## Import 0.2.0 archives into ECR
+
+Dispatch [0.2.0](https://github.com/dispatchlabs-ai/dispatch/releases/tag/v0.2.0)
+publishes the AMD64 controller, matching Ubuntu worker and frontend as archives.
+GHCR publication and a qualified schema-v1 registry manifest remain pending.
+You can import the images into your own ECR and supply the resulting digest-pinned
+`image` and `worker_image` inputs directly. No application checkout, Nix build or
+GHCR credential is required. This is a source-reviewed operator procedure, not
+an executed AWS installation or a module/application compatibility qualification.
+
+Use AWS CLI with your existing authorization and a Docker Engine that supports
+both Docker-save and OCI archive loading, and `docker image push --platform`
+(API 1.46+). The worker archive is OCI layout; an older Docker image store may
+not load it. Do not rebuild or convert it with `docker import` to work around
+an unsupported loader. Use a dedicated daemon/context, or ensure the local tags
+below are absent or already identify these bytes: loading can replace tag mappings.
+
+### Download, verify and load
+
+Download these files from the trusted release page into a new directory:
+`dispatch-controller-b8dda02-amd64.tar.gz`,
+`dispatch-worker-ubuntu-b8dda02-amd64.tar.gz`, `dispatch-frontend.tar.gz` and
+`SHA256SUMS`. On Linux:
+
+```sh
+for name in dispatch-controller-b8dda02-amd64.tar.gz dispatch-worker-ubuntu-b8dda02-amd64.tar.gz dispatch-frontend.tar.gz; do
+  awk -v n="$name" '$2 == n { print }' SHA256SUMS | sha256sum --check --strict || exit 1
+done
+```
+
+Require each explicit `OK` before continuing. On macOS use `shasum -a 256 -c -`
+instead of `sha256sum --check --strict`. Checksums from this trusted release
+channel verify integrity, not independent publisher identity; no Dispatch
+publisher signature is claimed.
+
+```sh
+docker load -i dispatch-controller-b8dda02-amd64.tar.gz
+docker load -i dispatch-worker-ubuntu-b8dda02-amd64.tar.gz
+docker image inspect dispatch-web:b8dda02325cf dispatch-agent:b8dda02325cf-amd64 \
+  --format '{{.Os}}/{{.Architecture}} {{index .Config.Labels "org.opencontainers.image.revision"}}'
+```
+
+Both must report `linux/amd64` and application revision
+`b8dda02325cff7978f413ecc4d41641b74801089`. Loading/inspection does not start containers.
+
+### Push into the intended repository
+
+Select your own nonsecret profile/region and existing repository outputs. Do not
+create replacement infrastructure as part of this transfer:
+
+```sh
+export AWS_PROFILE='YOUR_PROFILE'
+export AWS_REGION='YOUR_REGION'
+export ECR_REPOSITORY_URL='YOUR_ECR_REPOSITORY_URL'
+export ECR_REPOSITORY_NAME='YOUR_ECR_REPOSITORY_NAME'
+registry=${ECR_REPOSITORY_URL%%/*}
+controller_tag=0.2.0-b8dda02325cf-controller-amd64
+worker_tag=0.2.0-b8dda02325cf-worker-ubuntu-amd64
+aws sts get-caller-identity
+aws ecr describe-repositories --repository-names "$ECR_REPOSITORY_NAME"
+```
+
+Confirm the account, region, repository URL and tag immutability. Check both tags
+with `aws ecr describe-images` before pushing: existing tags must be inspected,
+not overwritten/deleted. An authorization/network error is not proof a tag is absent.
+Retain the original archives and prior installation images. Prefer the ECR Docker
+credential helper; otherwise use short-lived login via password-stdin:
+
+```sh
+aws ecr get-login-password --region "$AWS_REGION" |
+  docker login --username AWS --password-stdin "$registry"
+docker tag dispatch-web:b8dda02325cf "$ECR_REPOSITORY_URL:$controller_tag"
+docker tag dispatch-agent:b8dda02325cf-amd64 "$ECR_REPOSITORY_URL:$worker_tag"
+docker image push --platform linux/amd64 "$ECR_REPOSITORY_URL:$controller_tag"
+docker image push --platform linux/amd64 "$ECR_REPOSITORY_URL:$worker_tag"
+```
+
+Stop on any failure; do not delete images to make a retry succeed. Never print,
+paste or commit the login password. Platform-specific pushes publish image
+manifests rather than a multi-platform index.
+
+### Verify destination identities
+
+For each tag, obtain `imageDigest` with `aws ecr describe-images` and compare it
+with the successful push output. Retrieve the manifest **by that digest** using
+`aws ecr batch-get-image`. Verify its `config.digest` against the configuration
+blob independently hashed from the reviewed release archive:
+
+| Image | Expected configuration digest — not a deployment manifest digest |
+| --- | --- |
+| Controller | `sha256:27d9aa77710667b670b7bf88f8089c72a9cca4b815e34d9c43a225939f54952c` |
+| Ubuntu worker | `sha256:af6501ed9f5a5e07b9a17bc4781f2c51912ea59cea9c302f02726e03184a7338` |
+
+Pull each image by its ECR manifest digest and inspect the platform/revision
+again. Keep the manifests, push output and resulting references with your
+installation receipt. Supply `image` and `worker_image` as
+`<your-ECR-repository>@sha256:<verified-role-manifest-digest>` and
+`cpu_architecture = "X86_64"`. Archive checksums, configuration digests and local
+Docker image IDs are **not** these deployment inputs.
+
+Keep your reviewed module pin. Stage the frontend through your installation's
+publication workflow to a new immutable release prefix while retaining shared
+hashed assets and earlier prefixes. Its archive SHA-256 is
+`59654ea1d75f9308013d3e22cca5bfc8bd6d43917df25a9c9cf8bf34a0d37214`;
+frontend packaging revision is `2af772e74c551e62f988db7bc5a971a94c3e1db1`.
+The current `publish-frontend.py` requires a schema-v1 registry manifest with an
+exact qualified module-version claim; do not fabricate that claim merely to run
+the helper. Resolve that contract with the owning publisher or use your existing
+frontend publication workflow. Image import alone does not apply Terraform,
+switch the frontend, initialize a database or qualify hosted/model/worker behavior.
 
 ## Fresh-install acceptance
 
@@ -98,8 +211,8 @@ apply, image pull or customer access was used. This closes the external-caller
 **Remaining acceptance:** actual public image pulls, registry registration,
 fresh-account AWS initialization/activation, private enrollment/provider terminal,
 model/tool/browser workflow, controller/worker replacement and measured rollout
-latency remain unverified. The repository remains private pending authorized
-open-source publication. Source publication is verified separately from these
+latency remain unverified. The repository is now public; that visibility does not qualify
+the runtime or registry distribution. Source publication is verified separately from these
 runtime and distribution outcomes.
 
 

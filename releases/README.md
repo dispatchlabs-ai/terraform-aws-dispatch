@@ -5,9 +5,11 @@ images; it does not compile Dispatch during `plan` or `apply`. A customer needs
 released images, not the application source checkout or a Nix installation.
 
 **Current status:** the selector and metadata format below are implemented. No
-public image release or fresh AWS installation is established by this repository.
-There is intentionally no fabricated deployable release manifest. Module-source
-publication, image publication, public-registry registration and AWS deployment
+public registry image release or fresh AWS installation is established by this repository.
+Dispatch [0.2.0 downloadable archives](https://github.com/dispatchlabs-ai/dispatch/releases/tag/v0.2.0)
+can be [imported into ECR](../docs/releases.md#import-020-archives-into-ecr) and supplied
+through direct image inputs. There is intentionally no fabricated deployable
+release manifest. Module-source publication, image publication, public-registry registration and AWS deployment
 are separate outcomes.
 
 ## Publisher manifest

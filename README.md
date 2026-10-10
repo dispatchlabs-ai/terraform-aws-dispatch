@@ -11,10 +11,11 @@ avoids permanent NAT, shares private managed ingress, and supports conditional
 zero-ACU Aurora plus explicit operator sleep/wake; no automatic idle timer is added.
 
 **Status:** source baseline implemented and offline-reviewed; live qualification pending. This
-repository is private pending the open-source release. Public images, registry
-registration and an independently qualified fresh-account installation are not
-established by this source. Do not use sample identities or fabricated image
-digests to activate tasks.
+repository is public. Dispatch [0.2.0 archives](https://github.com/dispatchlabs-ai/dispatch/releases/tag/v0.2.0)
+are available; [import them into ECR without rebuilding](docs/releases.md#import-020-archives-into-ecr).
+Public registry images, module registry registration and an independently
+qualified fresh-account installation remain pending. Do not use sample identities
+or fabricated image digests to activate tasks.
 
 Licensed under [MIT](LICENSE).
 
@@ -33,10 +34,9 @@ digests plus a verified SPA release bundle. The module renders internal service/
 bootstrap configuration. No application checkout, Nix build or customer-specific
 runbook should be needed by a release consumer.
 
-Pin the module to an immutable release or commit. During this private preparation
-phase, Git access is required; no public registry version is advertised. After
-publication the same module source supports Terraform and OpenTofu; engine and
-provider compatibility must be verified for each release.
+Pin the module to an immutable release or commit. Public Git source can be pinned
+to a full commit; no Terraform/OpenTofu registry version is advertised yet. Engine and provider compatibility must be verified
+for each release.
 
 ## Ownership
 
