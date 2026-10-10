@@ -1,8 +1,8 @@
 # Reuse the private launcher ALB, but isolate worker callbacks from control APIs.
 # The caller supplies ACM certificate material; private keys never enter this module.
 locals {
-  backend_callback_enabled  = var.launcher_internal_alb && var.backend_callback_certificate_arn != null
-  backend_callback_hostname = "callbacks.${aws_service_discovery_private_dns_namespace.this.name}"
+  backend_callback_enabled  = var.launcher_internal_alb && (local.managed_domain || var.backend_callback_certificate_arn != null)
+  backend_callback_hostname = local.managed_domain ? "callbacks.${var.domain.name}" : "callbacks.${aws_service_discovery_private_dns_namespace.this.name}"
 }
 resource "aws_lb_target_group" "backend_callback" {
   count                = local.backend_callback_enabled ? 1 : 0
@@ -25,7 +25,7 @@ resource "aws_lb_listener" "backend_callback" {
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn   = var.backend_callback_certificate_arn
+  certificate_arn   = local.callback_certificate_arn
   default_action {
     type = "fixed-response"
     fixed_response {
@@ -50,7 +50,7 @@ resource "aws_lb_listener_rule" "backend_callback" {
 # Cloud Map owns its namespace's hosted zone; Route 53 writes are rejected.
 # Register the ALB alias through Cloud Map, not individual controller addresses.
 resource "aws_service_discovery_service" "backend_callback" {
-  count = local.backend_callback_enabled ? 1 : 0
+  count = local.backend_callback_enabled && !local.managed_domain ? 1 : 0
   name  = "callbacks"
   dns_config {
     namespace_id   = aws_service_discovery_private_dns_namespace.this.id

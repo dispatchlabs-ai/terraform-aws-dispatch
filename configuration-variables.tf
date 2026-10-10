@@ -8,6 +8,7 @@ variable "application" {
     configuration_revision         = string
     database_ca_pem                = string
     backend_ca_pem                 = string
+    callback_ca_pem                = optional(string)
     backend_certificate_pem        = string
     backend_private_key_secret_arn = string
     database_url_secret_arns = object({
@@ -47,7 +48,7 @@ variable "application" {
   }
   validation {
     condition = var.application == null ? true : alltrue([
-      for pem in [var.application.database_ca_pem, var.application.backend_ca_pem, var.application.backend_certificate_pem] :
+      for pem in [var.application.database_ca_pem, var.application.backend_ca_pem, var.application.backend_certificate_pem, coalesce(var.application.callback_ca_pem, var.application.backend_ca_pem)] :
       strcontains(pem, "-----BEGIN CERTIFICATE-----") && !strcontains(pem, "PRIVATE KEY")
     ])
     error_message = "CA and certificate inputs must contain public certificate PEM, never private keys."

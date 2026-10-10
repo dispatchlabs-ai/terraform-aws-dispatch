@@ -47,7 +47,7 @@ resource "aws_ecs_task_definition" "stable" {
         awslogs-group  = aws_cloudwatch_log_group.this[each.key].name,
         awslogs-region = data.aws_region.current.region, awslogs-stream-prefix = each.key
       } }
-      }, each.key == "launcher" && lookup(var.service_deployment_mode, each.key, "stop-first") == "rolling" ? {
+      }, each.key == "launcher" && lookup(var.service_deployment_mode, each.key, "rolling") == "rolling" ? {
       healthCheck = {
         command  = ["CMD", "node", "-e", "const r=require('node:http').get('http://127.0.0.1:8830/internal/ready',s=>{s.resume();process.exitCode=s.statusCode===200?0:1});r.on('error',()=>{process.exitCode=1});r.setTimeout(4000,()=>r.destroy());"]
         interval = 5, timeout = 5, retries = 3, startPeriod = 300
@@ -60,15 +60,15 @@ resource "aws_ecs_task_definition" "stable" {
       error_message = "A controller image requires complete typed application configuration; task-local SQLite fallback is not supported."
     }
     precondition {
-      condition     = each.key != "backend" || lookup(var.service_deployment_mode, each.key, "stop-first") != "rolling" || var.certificate_arn != null
+      condition     = each.key != "backend" || lookup(var.service_deployment_mode, each.key, "rolling") != "rolling" || local.backend_alb_enabled
       error_message = "Rolling backend deployment requires the module ALB readiness check and a certificate."
     }
     precondition {
-      condition     = each.key != "backend" || lookup(var.service_deployment_mode, each.key, "stop-first") != "rolling" || local.backend_callback_enabled
+      condition     = each.key != "backend" || lookup(var.service_deployment_mode, each.key, "rolling") != "rolling" || local.backend_callback_enabled
       error_message = "Rolling backend deployment requires managed callback ingress and workers migrated to backend_callback_url with matching CA trust."
     }
     precondition {
-      condition     = each.key != "launcher" || lookup(var.service_deployment_mode, each.key, "stop-first") != "rolling" || var.launcher_internal_alb
+      condition     = each.key != "launcher" || lookup(var.service_deployment_mode, each.key, "rolling") != "rolling" || var.launcher_internal_alb
       error_message = "Rolling launcher deployment requires the internal ALB and callers migrated to its URL."
     }
   }
@@ -77,7 +77,7 @@ resource "aws_ecs_task_definition" "stable" {
 resource "aws_ecs_task_definition" "worker" {
   count = var.image == null ? 0 : 1
   # Old launchers keep a pinned revision until handover. Do not deregister it.
-  skip_destroy             = lookup(var.service_deployment_mode, "launcher", "stop-first") == "rolling"
+  skip_destroy             = lookup(var.service_deployment_mode, "launcher", "rolling") == "rolling"
   family                   = "${var.name}-worker"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
@@ -147,10 +147,10 @@ resource "aws_ecs_service" "stable" {
   desired_count                      = lookup(var.service_desired_counts, each.key, var.desired_count)
   launch_type                        = "FARGATE"
   platform_version                   = "1.4.0"
-  deployment_minimum_healthy_percent = lookup(var.service_deployment_mode, each.key, "stop-first") == "rolling" ? 100 : 0
-  deployment_maximum_percent         = lookup(var.service_deployment_mode, each.key, "stop-first") == "rolling" ? 200 : 100
+  deployment_minimum_healthy_percent = lookup(var.service_deployment_mode, each.key, "rolling") == "rolling" ? 100 : 0
+  deployment_maximum_percent         = lookup(var.service_deployment_mode, each.key, "rolling") == "rolling" ? 200 : 100
   enable_execute_command             = false
-  health_check_grace_period_seconds  = (each.key == "backend" && (var.certificate_arn != null || local.backend_callback_enabled)) || (each.key == "launcher" && var.launcher_internal_alb) ? 600 : 0
+  health_check_grace_period_seconds  = (each.key == "backend" && (local.backend_alb_enabled || local.backend_callback_enabled)) || (each.key == "launcher" && var.launcher_internal_alb) ? 600 : 0
   deployment_circuit_breaker {
     enable   = true
     rollback = false
@@ -162,7 +162,7 @@ resource "aws_ecs_service" "stable" {
   }
   service_registries { registry_arn = aws_service_discovery_service.stable[each.key].arn }
   dynamic "load_balancer" {
-    for_each = each.key == "backend" && var.certificate_arn != null ? [1] : []
+    for_each = each.key == "backend" && local.backend_alb_enabled ? [1] : []
     content {
       target_group_arn = aws_lb_target_group.backend[0].arn
       container_name   = "backend"
@@ -185,11 +185,11 @@ resource "aws_ecs_service" "stable" {
       container_port   = 3001
     }
   }
-  depends_on = [aws_lb_listener.https, aws_lb_listener.launcher, aws_lb_listener_rule.backend_callback, aws_service_discovery_instance.backend_callback, aws_iam_role_policy.execution, aws_iam_role_policy.launcher, aws_iam_role_policy.backend, aws_nat_gateway.this]
+  depends_on = [aws_lb_listener.https, aws_lb_listener.launcher, aws_lb_listener_rule.backend_callback, aws_service_discovery_instance.backend_callback, aws_iam_role_policy.execution, aws_iam_role_policy.launcher, aws_iam_role_policy.backend, aws_nat_gateway.this, aws_ecs_cluster_capacity_providers.workers]
   tags       = local.tags
 }
 resource "aws_lb" "this" {
-  count                      = var.certificate_arn == null ? 0 : 1
+  count                      = local.backend_alb_enabled ? 1 : 0
   name                       = var.name
   internal                   = var.internal_alb
   load_balancer_type         = "application"
@@ -200,7 +200,7 @@ resource "aws_lb" "this" {
   tags                       = local.tags
 }
 resource "aws_lb_target_group" "backend" {
-  count                = var.certificate_arn == null ? 0 : 1
+  count                = local.backend_alb_enabled ? 1 : 0
   name                 = "${var.name}-backend"
   port                 = 3001
   protocol             = "HTTPS"
@@ -208,26 +208,26 @@ resource "aws_lb_target_group" "backend" {
   vpc_id               = aws_vpc.this.id
   deregistration_delay = var.deregistration_delay_seconds
   health_check {
-    path     = lookup(var.service_deployment_mode, "backend", "stop-first") == "rolling" ? "/internal/ready" : var.backend_health_check_path
+    path     = lookup(var.service_deployment_mode, "backend", "rolling") == "rolling" ? "/internal/ready" : var.backend_health_check_path
     protocol = "HTTPS"
     matcher  = "200"
   }
   tags = local.tags
 }
 resource "aws_lb_listener" "https" {
-  count             = var.certificate_arn == null ? 0 : 1
+  count             = local.backend_alb_enabled ? 1 : 0
   load_balancer_arn = aws_lb.this[0].arn
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn   = var.certificate_arn
+  certificate_arn   = local.backend_certificate_arn
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.backend[0].arn
   }
 }
 resource "aws_lb_listener_rule" "deny_internal" {
-  count        = var.certificate_arn == null ? 0 : 1
+  count        = local.backend_alb_enabled ? 1 : 0
   listener_arn = aws_lb_listener.https[0].arn
   priority     = 1
   condition {

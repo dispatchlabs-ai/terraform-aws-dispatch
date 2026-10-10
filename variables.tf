@@ -37,7 +37,11 @@ variable "database_storage_gib" {
 }
 variable "log_retention_days" {
   type    = number
-  default = 30
+  default = 7
+  validation {
+    condition     = contains([1, 3, 5, 7, 14, 30], var.log_retention_days)
+    error_message = "Select short CloudWatch retention: 1, 3, 5, 7, 14 or 30 days."
+  }
 }
 variable "image" {
   description = "Immutable controller OCI registry digest (and worker fallback). Null prepares foundation only."
@@ -116,9 +120,9 @@ variable "service_desired_counts" {
 }
 
 variable "service_deployment_mode" {
-  description = "Per-controller ECS deployment mode. Omitted services use stop-first (0/100). Rolling (100/200) enables readiness gates and same-role peer traffic; it requires a handover-capable controller image/configuration. Legacy exclusive-owner images do not support it."
+  description = "Controllers default to readiness-gated rolling (100/200). Stop-first is an explicit maintenance choice, not a zero-downtime deployment."
   type        = map(string)
-  default     = {}
+  default     = { backend = "rolling", launcher = "rolling" }
   validation {
     condition     = alltrue([for role, mode in var.service_deployment_mode : contains(["backend", "launcher"], role) && contains(["stop-first", "rolling"], mode)])
     error_message = "Select stop-first or rolling for backend and/or launcher only."
@@ -128,7 +132,7 @@ variable "service_deployment_mode" {
 variable "launcher_internal_alb" {
   description = "Use a private launcher ALB for managed request withdrawal/draining. Requires a readiness-capable image; migrate callers before enabling rolling."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "backend_callback_certificate_arn" {

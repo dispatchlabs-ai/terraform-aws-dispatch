@@ -117,7 +117,7 @@ resource "aws_iam_role_policy" "launcher" {
   role  = aws_iam_role.task["launcher"].id
   policy = jsonencode({ Version = "2012-10-17", Statement = [
     { Effect   = "Allow", Action = ["ecs:RunTask"],
-      Resource = lookup(var.service_deployment_mode, "launcher", "stop-first") == "rolling" ? "arn:${data.aws_partition.current.partition}:ecs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.name}-worker:*" : aws_ecs_task_definition.worker[0].arn,
+      Resource = lookup(var.service_deployment_mode, "launcher", "rolling") == "rolling" ? "arn:${data.aws_partition.current.partition}:ecs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:task-definition/${var.name}-worker:*" : aws_ecs_task_definition.worker[0].arn,
     Condition = { ArnEquals = { "ecs:cluster" = aws_ecs_cluster.workers.arn } } },
     { Effect   = "Allow", Action = ["ecs:DescribeTasks", "ecs:StopTask"],
       Resource = "arn:${data.aws_partition.current.partition}:ecs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:task/${aws_ecs_cluster.workers.name}/*",

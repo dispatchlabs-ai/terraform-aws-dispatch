@@ -42,7 +42,7 @@ locals {
         operatorTokenFile = "${local.bootstrap_directory}/operator-token"
         launcherUrl       = local.generated_launcher_url
       })
-      }, lookup(var.service_deployment_mode, "backend", "stop-first") == "rolling" ? {
+      }, lookup(var.service_deployment_mode, "backend", "rolling") == "rolling" ? {
       "controller.json" = jsonencode({
         databaseConfigFile = "${local.bootstrap_directory}/routing.json"
         tokenFile          = "${local.bootstrap_directory}/backend-peer-token"
@@ -54,12 +54,13 @@ locals {
     launcher = merge({
       "database-ca.pem" = app.database_ca_pem
       "backend-ca.pem"  = app.backend_ca_pem
+      "callback-ca.pem" = coalesce(app.callback_ca_pem, app.backend_ca_pem)
       "launcher.json" = jsonencode({
         installationId = app.installation_id
         postgres       = { urlFile = "${local.bootstrap_directory}/launcher-db-url", caFile = "${local.bootstrap_directory}/database-ca.pem" }
         tokenFile      = "${local.bootstrap_directory}/launcher-token"
         workerKeyFile  = "${local.bootstrap_directory}/worker-token"
-        backendCaFile  = "${local.bootstrap_directory}/backend-ca.pem"
+        backendCaFile  = "${local.bootstrap_directory}/callback-ca.pem"
         host           = "0.0.0.0", port = 8830, driverType = "ecs"
         driver = {
           region                = data.aws_region.current.region
@@ -70,10 +71,11 @@ locals {
           securityGroups        = [aws_security_group.tasks["worker"].id]
           configurationRevision = app.configuration_revision
           platformVersion       = "1.4.0"
+          capacityProvider      = var.worker_capacity_provider
           environment           = { DISPATCH_BACKEND_INTERNAL_URL = local.generated_callback_url }
         }
       })
-      }, lookup(var.service_deployment_mode, "launcher", "stop-first") == "rolling" ? {
+      }, lookup(var.service_deployment_mode, "launcher", "rolling") == "rolling" ? {
       "controller-database.json" = jsonencode({
         installationId  = app.installation_id
         databaseUrlFile = "${local.bootstrap_directory}/launcher-db-url"
@@ -106,13 +108,13 @@ locals {
       { for store, arn in app.encryption_key_secret_arns : "${store}-key" => { arn = arn, encoding = "base64" } },
       { for name in ["worker", "launcher", "operator"] : "${name}-token" => { arn = app.token_secret_arns[name], encoding = "utf8" } },
       { "backend-key.pem" = { arn = app.backend_private_key_secret_arn, encoding = "utf8" } },
-      lookup(var.service_deployment_mode, "backend", "stop-first") == "rolling" ? { "backend-peer-token" = { arn = app.token_secret_arns.backend_peer, encoding = "utf8" } } : {}
+      lookup(var.service_deployment_mode, "backend", "rolling") == "rolling" ? { "backend-peer-token" = { arn = app.token_secret_arns.backend_peer, encoding = "utf8" } } : {}
     )
     launcher = merge({
       "launcher-db-url" = { arn = app.database_url_secret_arns.launcher, encoding = "utf8" }
       "launcher-token"  = { arn = app.token_secret_arns.launcher, encoding = "utf8" }
       "worker-token"    = { arn = app.token_secret_arns.worker, encoding = "utf8" }
-    }, lookup(var.service_deployment_mode, "launcher", "stop-first") == "rolling" ? { "launcher-peer-token" = { arn = app.token_secret_arns.launcher_peer, encoding = "utf8" } } : {})
+    }, lookup(var.service_deployment_mode, "launcher", "rolling") == "rolling" ? { "launcher-peer-token" = { arn = app.token_secret_arns.launcher_peer, encoding = "utf8" } } : {})
     initializer = merge({ for store, arn in app.database_url_secret_arns : "${store}-db-url" => { arn = arn, encoding = "utf8" } }, {
       "rds-master.json" = { arn = aws_db_instance.this.master_user_secret[0].secret_arn, encoding = "utf8" }
     })
@@ -131,9 +133,9 @@ locals {
       DISPATCH_PORT          = "3001"
       DISPATCH_DATA_DIR      = "/data"
       DISPATCH_WORKSPACE_DIR = "/workspace"
-      }, role == "backend" ? { DISPATCH_BACKEND_WORKERS_CONFIG_FILE = "${local.bootstrap_directory}/backend.json" } : {},
+      }, role == "backend" ? { DISPATCH_BACKEND_WORKERS_CONFIG_FILE = "${local.bootstrap_directory}/backend.json", DISPATCH_SERVE_CLIENT = local.managed_domain ? "false" : "true" } : {},
       role == "launcher" ? { DISPATCH_LAUNCHER_CONFIG_FILE = "${local.bootstrap_directory}/launcher.json" } : {},
-      contains(["backend", "launcher"], role) && lookup(var.service_deployment_mode, role, "stop-first") == "rolling" ? {
+      contains(["backend", "launcher"], role) && lookup(var.service_deployment_mode, role, "rolling") == "rolling" ? {
         DISPATCH_CONTROLLER_CONFIG_FILE = "${local.bootstrap_directory}/controller.json"
     } : {})
   }]
