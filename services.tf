@@ -157,9 +157,9 @@ resource "aws_ecs_service" "stable" {
     rollback = false
   }
   network_configuration {
-    subnets          = aws_subnet.private[*].id
+    subnets          = local.task_subnet_ids
     security_groups  = [aws_security_group.tasks[each.key].id]
-    assign_public_ip = false
+    assign_public_ip = local.task_assign_public_ip
   }
   service_registries { registry_arn = aws_service_discovery_service.stable[each.key].arn }
   dynamic "load_balancer" {
@@ -200,7 +200,7 @@ resource "aws_lb" "this" {
   name                       = var.name
   internal                   = var.internal_alb
   load_balancer_type         = "application"
-  security_groups            = [aws_security_group.tasks["alb"].id]
+  security_groups            = concat([aws_security_group.tasks["alb"].id], local.shared_private_alb ? [aws_security_group.tasks["launcher_alb"].id] : [])
   subnets                    = var.internal_alb ? aws_subnet.private[*].id : aws_subnet.public[*].id
   idle_timeout               = var.idle_timeout_seconds
   drop_invalid_header_fields = true

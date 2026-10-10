@@ -61,8 +61,8 @@ resource "aws_route53_record" "callback" {
   name    = "callbacks.${var.domain.name}"
   type    = "A"
   alias {
-    name                   = aws_lb.launcher[0].dns_name
-    zone_id                = aws_lb.launcher[0].zone_id
+    name                   = local.control_alb_dns_name
+    zone_id                = local.control_alb_zone_id
     evaluate_target_health = false
   }
 }

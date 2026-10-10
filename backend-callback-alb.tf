@@ -21,8 +21,8 @@ resource "aws_lb_target_group" "backend_callback" {
 }
 resource "aws_lb_listener" "backend_callback" {
   count             = local.backend_callback_enabled ? 1 : 0
-  load_balancer_arn = aws_lb.launcher[0].arn
-  port              = 443
+  load_balancer_arn = local.control_alb_arn
+  port              = local.callback_port
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
   certificate_arn   = local.callback_certificate_arn
@@ -67,6 +67,6 @@ resource "aws_service_discovery_instance" "backend_callback" {
   instance_id = "callback-alb"
   service_id  = aws_service_discovery_service.backend_callback[0].id
   attributes = {
-    AWS_ALIAS_DNS_NAME = aws_lb.launcher[0].dns_name
+    AWS_ALIAS_DNS_NAME = local.control_alb_dns_name
   }
 }

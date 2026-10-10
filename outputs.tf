@@ -10,7 +10,7 @@ output "database_master_secret_arn" {
 }
 output "artifact_bucket" { value = aws_s3_bucket.artifacts.id }
 output "backend_private_url" { value = "https://backend.${aws_service_discovery_private_dns_namespace.this.name}:3001" }
-output "launcher_private_url" { value = var.launcher_internal_alb ? "http://${aws_lb.launcher[0].dns_name}:8830" : "http://launcher.${aws_service_discovery_private_dns_namespace.this.name}:8830" }
+output "launcher_private_url" { value = var.launcher_internal_alb ? "http://${local.control_alb_dns_name}:8830" : "http://launcher.${aws_service_discovery_private_dns_namespace.this.name}:8830" }
 output "alb_dns_name" { value = try(aws_lb.this[0].dns_name, null) }
 output "alb_zone_id" { value = try(aws_lb.this[0].zone_id, null) }
 output "task_role_arns" { value = { for key, role in aws_iam_role.task : key => role.arn } }
@@ -31,6 +31,6 @@ output "backend_callback_hostname" {
   description = "Private callback certificate DNS identity, available before certificate provisioning."
 }
 output "backend_callback_url" {
-  value       = local.backend_callback_enabled ? "https://${local.backend_callback_hostname}" : null
+  value       = local.backend_callback_enabled ? "https://${local.backend_callback_hostname}:${local.callback_port}" : null
   description = "Readiness-gated worker callback origin. Set DISPATCH_BACKEND_INTERNAL_URL explicitly and supply matching worker CA trust; existing worker environments are not changed."
 }

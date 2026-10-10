@@ -246,7 +246,7 @@ run "managed_domain_baseline" {
     error_message = "Static frontend storage must be private behind signed OAC reads."
   }
   assert {
-    condition     = local.generated_services.backend.environment.DISPATCH_SERVE_CLIENT == "false" && local.generated_callback_url == "https://callbacks.dispatch.example.com"
+    condition     = local.generated_services.backend.environment.DISPATCH_SERVE_CLIENT == "false" && local.generated_callback_url == "https://callbacks.dispatch.example.com:8443"
     error_message = "Managed delivery needs API-only backend and private stable callbacks."
   }
 }

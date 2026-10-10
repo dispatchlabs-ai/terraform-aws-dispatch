@@ -5,8 +5,8 @@ locals {
   bootstrap_directory    = "/tmp/dispatch-bootstrap"
   configured_apps        = var.application == null ? [] : [var.application]
   backend_dns_name       = "backend.${aws_service_discovery_private_dns_namespace.this.name}"
-  generated_launcher_url = var.launcher_internal_alb ? "http://${aws_lb.launcher[0].dns_name}:8830" : "http://launcher.${aws_service_discovery_private_dns_namespace.this.name}:8830"
-  generated_callback_url = local.backend_callback_enabled ? "https://${local.backend_callback_hostname}" : "https://${local.backend_dns_name}:3001"
+  generated_launcher_url = var.launcher_internal_alb ? "http://${local.control_alb_dns_name}:8830" : "http://launcher.${aws_service_discovery_private_dns_namespace.this.name}:8830"
+  generated_callback_url = local.backend_callback_enabled ? "https://${local.backend_callback_hostname}:${local.callback_port}" : "https://${local.backend_dns_name}:3001"
 
   # JSON files refer only to restricted paths, not credential-bearing URLs/keys.
   store_configuration = [for app in local.configured_apps : {
@@ -67,7 +67,8 @@ locals {
           cluster               = aws_ecs_cluster.workers.arn
           taskDefinition        = try(aws_ecs_task_definition.worker[0].arn, null)
           containerName         = "worker"
-          subnets               = aws_subnet.private[*].id
+          subnets               = local.task_subnet_ids
+          assignPublicIp        = local.task_assign_public_ip
           securityGroups        = [aws_security_group.tasks["worker"].id]
           configurationRevision = app.configuration_revision
           platformVersion       = "1.4.0"

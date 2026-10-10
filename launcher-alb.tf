@@ -7,7 +7,7 @@ resource "aws_lb" "launcher" {
     prefix  = "internal"
   }
   depends_on                 = [aws_s3_bucket_policy.access_logs, aws_s3_bucket_server_side_encryption_configuration.access_logs]
-  count                      = var.launcher_internal_alb ? 1 : 0
+  count                      = var.launcher_internal_alb && !local.shared_private_alb ? 1 : 0
   name                       = "${var.name}-launcher"
   internal                   = true
   load_balancer_type         = "application"
@@ -34,7 +34,7 @@ resource "aws_lb_target_group" "launcher" {
 }
 resource "aws_lb_listener" "launcher" {
   count             = var.launcher_internal_alb ? 1 : 0
-  load_balancer_arn = aws_lb.launcher[0].arn
+  load_balancer_arn = local.control_alb_arn
   port              = 8830
   protocol          = "HTTP"
   default_action {

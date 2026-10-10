@@ -28,7 +28,7 @@ locals {
     backend_launcher_alb  = { from = "backend", to = "launcher_alb", port = 8830 }
     launcher_alb_launcher = { from = "launcher_alb", to = "launcher", port = 8830 }
     } : {}, local.backend_callback_enabled ? {
-    worker_callback_alb  = { from = "worker", to = "launcher_alb", port = 443 }
+    worker_callback_alb  = { from = "worker", to = "launcher_alb", port = local.callback_port }
     callback_alb_backend = { from = "launcher_alb", to = "backend", port = 3001 }
   } : {})
 }

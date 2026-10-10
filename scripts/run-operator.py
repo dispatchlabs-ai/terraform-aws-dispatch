@@ -70,17 +70,19 @@ def request_for(outputs, operation, account, region, stopped):
     worker_cluster = arn(output(outputs, "worker_cluster_arn"), "cluster", account, region)
     require(cluster != worker_cluster, "Operator tasks must not use the worker-only cluster.")
     definition = arn(operator.get("task_definition_arn"), "definition", account, region)
-    subnets = output(outputs, "private_subnet_ids")
+    subnets = output(outputs, "task_subnet_ids")
+    public_ip = output(outputs, "task_assign_public_ip")
+    require(type(public_ip) is bool, "Invalid task public IP output.")
     group = operator.get("security_group_id")
     require(isinstance(subnets, list) and 0 < len(subnets) <= 16 and
             all(isinstance(s, str) and re.fullmatch(r"subnet-[a-f0-9]+", s) for s in subnets),
-            "Invalid private subnet outputs.")
+            "Invalid task subnet outputs.")
     require(isinstance(group, str) and re.fullmatch(r"sg-[a-f0-9]+", group), "Invalid operator security group.")
     request = {
         "cluster": cluster, "taskDefinition": definition, "count": 1,
         "launchType": "FARGATE", "enableExecuteCommand": False,
         "networkConfiguration": {"awsvpcConfiguration": {
-            "subnets": subnets, "securityGroups": [group], "assignPublicIp": "DISABLED",
+            "subnets": subnets, "securityGroups": [group], "assignPublicIp": "ENABLED" if public_ip else "DISABLED",
         }},
     }
     if operation.startswith("database-"):

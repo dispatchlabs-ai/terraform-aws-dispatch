@@ -27,7 +27,8 @@ def outputs():
     return {
         "service_cluster_arn": CLUSTER,
         "worker_cluster_arn": WORKERS,
-        "private_subnet_ids": ["subnet-123abc", "subnet-456def"],
+        "task_subnet_ids": ["subnet-123abc", "subnet-456def"],
+        "task_assign_public_ip": False,
         "database_initializer": {"task_definition_arn": PREFIX + "task-definition/example-db-init:1",
                                  "security_group_id": "sg-123abc"},
         "activation": {"task_definition_arn": PREFIX + "task-definition/example-activation:2",
