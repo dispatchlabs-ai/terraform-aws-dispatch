@@ -9,8 +9,8 @@ No free tiers, credits, Savings Plans, taxes or negotiated discounts are assumed
 
 Assume one backend and one launcher (each 0.5 vCPU / 2 GiB), two **private** ALBs,
 one NAT gateway/EIP, one Aurora Serverless v2 writer at its 0.5-ACU floor, 20 GB of
-database data, 17 retained Secrets Manager secrets, and two allocated hosted-zone
-charges (public zone plus Cloud Map's private namespace). A shared existing public
+database data, 17 retained Secrets Manager secrets, and three allocated hosted-zone
+charges (public zone, private callback zone and Cloud Map's private namespace). A shared existing public
 zone may have no incremental hosted-zone charge.
 
 | Component | Rate / calculation | Monthly |
@@ -22,8 +22,8 @@ zone may have no incremental hosted-zone charge.
 | NAT public IPv4 | 730 × $0.005/hour | $3.65 |
 | Two ALBs | 2 × 730 × $0.0225/hour | $32.85 |
 | Secrets | 17 × $0.40/month | $6.80 |
-| Hosted zones | 2 × $0.50/month | $1.00 |
-| **Fixed/assumed-storage subtotal** | Before usage, workers or inference | **$156.98** |
+| Hosted zones | 3 × $0.50/month | $1.50 |
+| **Fixed/assumed-storage subtotal** | Before usage, workers or inference | **$157.48** |
 
 The nonessential ADOT collector has a 256-MiB limit / 64-MiB reservation **inside
 the existing 2-GiB task**, not a separately billed Fargate task. It consumes that
@@ -55,7 +55,7 @@ A concrete example adds **$7.33/month** using these assumptions:
 - 10,000 Secrets Manager API calls and 100,000 billable non-alias DNS queries:
   $0.09. Eligible AWS alias queries are not billed as ordinary DNS queries.
 
-That is **about $164.31/month before workers**, plus a small allowance for Cloud
+That is **about $164.81/month before workers**, plus a small allowance for Cloud
 Map registrations/discovery API calls and temporary rolling-overlap tasks. Use
 **roughly $166/month** as this scenario's planning baseline, not a price ceiling.
 The application starts with zero desired controllers until explicit bootstrap;
@@ -78,7 +78,7 @@ application qualification, not transparent reconnect promised by Serverless.
 
 The selectable small-RDS alternative is **db.t4g.small**, $0.032/hour = $23.36/month,
 plus 20 GiB gp3 at $0.115 = $2.30/month. Replacing Aurora's minimum compute/storage
-with these gives a **$136.84 subtotal**, roughly $20/month less, before usage.
+with these gives a **$137.34 subtotal**, roughly $20/month less, before usage.
 It lacks automatic compute scaling and is single-AZ. Sustained CPU beyond the
 burstable allowance can cost extra; memory/connections and CPU credits must be
 measured. Aurora is the autoscaling default, **not claimed to be cheapest** for a

@@ -4,7 +4,7 @@ variable "enable_tracing" {
   default     = true
 }
 variable "trace_sample_ratio" {
-  description = "Application parent-based root trace sampling probability. X-Ray retains traces for its service-defined 30 days."
+  description = "Application local trace sampling probability; incoming flags cannot override this ratio. X-Ray retains traces for its service-defined 30 days."
   type        = number
   default     = 0.1
   validation {
