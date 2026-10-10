@@ -6,7 +6,9 @@ private PostgreSQL, S3 artifacts, ECS clusters, task definitions, scoped
 IAM/security groups and HTTPS ingress. The baseline extension adds Aurora
 Serverless v2 (with a small-RDS alternative), managed ACM/Route 53, a CloudFront
 SPA/API entry point and sampled application tracing. Terraform registers the worker definition;
-Dispatch's launcher creates and retires conversation tasks.
+Dispatch's launcher creates and retires conversation tasks. The low-idle profile
+avoids permanent NAT, shares private managed ingress, and supports conditional
+zero-ACU Aurora plus explicit operator sleep/wake; no automatic idle timer is added.
 
 **Status:** source baseline implemented and offline-reviewed; live qualification pending. This
 repository is private pending the open-source release. Public images, registry

@@ -184,11 +184,10 @@ acceptance does not reopen public admission. Read-only owner-status polling prec
 one activation POST. Fresh controller identities/counts are rechecked after gating
 and before mutations; actual STOPPED/clean-exit checks remain required.
 
-Deployer reports independent Git-archive/external-caller passes at `8b8ee00` on
+Deployer reports independent Git-archive/external-caller passes at `192c6ce` on
 Terraform **1.13.5** / OpenTofu **1.12.6**, provider **6.67.0**: **28 mock plans per
-engine**, **33 Python checks**, **9 operator-request cases** and edge checks.
-`192c6ce` adds a drift-refusal guard/test and corrects output wording, not different
-infrastructure. Pi verifies all **11 lifecycle checks**. Documenter independently
+engine**, **34 Python checks**, **9 operator-request cases** and edge checks.
+Controller-drift refusal is included; Pi verifies all **11 lifecycle checks**. Documenter independently
 reran **34 Python checks**, the **9 operator-request cases**, and complete caller
 init/validate on Terraform **1.13.5** / OpenTofu **1.13.1** after the correction.
 These are offline/source checks, not AWS plans/applies or application runtime tests.
