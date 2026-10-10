@@ -101,3 +101,24 @@ model/tool/browser workflow, controller/worker replacement and measured rollout
 latency remain unverified. The repository remains private pending authorized
 open-source publication. Source publication is verified separately from these
 runtime and distribution outcomes.
+
+
+## Baseline gap-fill acceptance
+
+The October 10 implementation authorization extends the earlier source checks;
+those earlier passes do not qualify the added infrastructure. Record separate
+source checks and actual runtime evidence for:
+
+- ALB access-log delivery/lifecycle, ACM validation and Route 53 routing.
+- CloudFront SPA/assets delivery without authenticated-response caching, lost
+  cookies/origin checks, API error-to-index rewriting or broken SSE streaming.
+- Rolling controllers without unnecessary worker replacement; Spot interruption
+  with confirmed old-executor termination before replacement and no mutation replay.
+- Aurora version/region compatibility, effective credential-safe settings,
+  workload-aware cost comparison and fail-closed recovery after connection loss.
+- Safe sampled spans exported from ordinary services/workers, short operational
+  retention, and no recording of credential-maintenance terminals.
+
+No EFS or speculative workspace filesystem is required. Keep temporary working
+files disposable and artifacts durable in ordinary S3. Independent-engine mock
+plans and source builds remain distinct from AWS/CDN/database/Spot execution.
