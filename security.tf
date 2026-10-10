@@ -94,8 +94,8 @@ resource "aws_iam_role" "task" {
   tags               = local.tags
 }
 resource "aws_iam_role_policy" "execution" {
-  for_each = aws_iam_role.execution
-  role     = each.value.id
+  for_each = toset(["backend", "launcher", "worker"])
+  role     = aws_iam_role.execution[each.key].id
   policy = jsonencode({ Version = "2012-10-17", Statement = concat([
     { Effect = "Allow", Action = ["ecr:GetAuthorizationToken"], Resource = "*" },
     { Effect = "Allow", Action = ["ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage"], Resource = concat([aws_ecr_repository.this.arn], tolist(var.image_pull_repository_arns)) },

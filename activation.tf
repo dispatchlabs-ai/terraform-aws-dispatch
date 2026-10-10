@@ -83,7 +83,8 @@ resource "aws_ecs_task_definition" "activation" {
     name            = "activation", image = var.image, essential = true,
     user            = "65532:65532", readonlyRootFilesystem = true,
     linuxParameters = { initProcessEnabled = true, capabilities = { add = [], drop = ["ALL"] } },
-    command         = ["node", "-e", file("${path.module}/templates/activate.cjs")],
+    entryPoint      = ["node"]
+    command         = ["-e", file("${path.module}/templates/activate.cjs")],
     environment = [
       { name = "DISPATCH_BACKEND_ORIGIN", value = "https://backend.${aws_service_discovery_private_dns_namespace.this.name}:3001" },
       { name = "DISPATCH_BACKEND_CA", value = var.application.backend_ca_pem }

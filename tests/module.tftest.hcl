@@ -1,4 +1,34 @@
 mock_provider "aws" {
+  mock_resource "aws_s3_bucket" {
+    defaults = { id = "dispatch-example-artifacts", arn = "arn:aws:s3:::dispatch-example-artifacts" }
+  }
+  mock_resource "aws_subnet" {
+    defaults = { id = "subnet-123abc" }
+  }
+  mock_resource "aws_security_group" {
+    defaults = { id = "sg-123abc" }
+  }
+  mock_resource "aws_iam_role" {
+    defaults = { arn = "arn:aws:iam::123456789012:role/example" }
+  }
+  mock_resource "aws_lb" {
+    defaults = { arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/example/1234567890123456" }
+  }
+  mock_resource "aws_lb_target_group" {
+    defaults = { arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/example/1234567890123456" }
+  }
+  mock_resource "aws_lb_listener" {
+    defaults = { arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/example/1234567890123456/1234567890123456" }
+  }
+  mock_resource "aws_ecs_cluster" {
+    defaults = { arn = "arn:aws:ecs:us-east-1:123456789012:cluster/example" }
+  }
+  mock_resource "aws_ecs_task_definition" {
+    defaults = { arn = "arn:aws:ecs:us-east-1:123456789012:task-definition/example:1" }
+  }
+  mock_resource "aws_service_discovery_service" {
+    defaults = { arn = "arn:aws:servicediscovery:us-east-1:123456789012:service/srv-example" }
+  }
   mock_data "aws_caller_identity" {
     defaults = { account_id = "123456789012" }
   }
@@ -115,5 +145,38 @@ run "activation_is_explicit_and_scoped" {
   assert {
     condition     = aws_vpc_security_group_ingress_rule.activation_backend[0].from_port == 3001 && length(aws_ecs_service.stable) == 2
     error_message = "Activation must use dedicated private API ingress and remain outside ECS services."
+  }
+}
+run "initializer_scope" {
+  command = plan
+  variables {
+    image                       = "ghcr.io/dispatchlabs-ai/dispatch@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    enable_database_initializer = true
+  }
+  assert {
+    condition     = length(local.generated_database_initializer.secrets) == 8 && !contains(values(local.generated_services.backend.secrets), aws_db_instance.this.master_user_secret[0].secret_arn) && length(local.generated_services.launcher.secrets) == 3
+    error_message = "Only initializer gets master plus seven DB URLs; launcher gets its journal and two shared tokens."
+  }
+  assert {
+    condition     = jsondecode(local.role_public_files[0].backend["directory.json"]).storeId == "dispatch-example:directory" && jsondecode(local.role_public_files[0].backend["routing.json"]).installationId == "dispatch-example"
+    error_message = "Persistent stores must preserve their distinct identity contracts."
+  }
+}
+run "rolling_configuration" {
+  command = plan
+  variables {
+    image                            = "ghcr.io/dispatchlabs-ai/dispatch@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    launcher_internal_alb            = true
+    certificate_arn                  = "arn:aws:acm:us-east-1:123456789012:certificate/example"
+    backend_callback_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/callback"
+    service_deployment_mode          = { backend = "rolling", launcher = "rolling" }
+  }
+  assert {
+    condition     = aws_ecs_service.stable["backend"].deployment_minimum_healthy_percent == 100 && aws_ecs_task_definition.worker[0].skip_destroy
+    error_message = "Rolling must preserve old worker task revisions and readiness-gated controller overlap."
+  }
+  assert {
+    condition     = local.generated_services.backend.environment.DISPATCH_CONTROLLER_CONFIG_FILE == "/tmp/dispatch-bootstrap/controller.json" && local.generated_services.launcher.environment.DISPATCH_CONTROLLER_CONFIG_FILE == "/tmp/dispatch-bootstrap/controller.json"
+    error_message = "Both rolling roles need explicit native controller configuration."
   }
 }
