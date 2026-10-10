@@ -121,10 +121,47 @@ run "tracing_opt_out" {
     error_message = "Tracing opt-out must remove sidecars, endpoint settings and grants."
   }
 }
-run "reject_zero_capacity" {
+run "aurora_auto_pause" {
   command = plan
   variables { aurora_min_capacity = 0 }
-  expect_failures = [var.aurora_min_capacity]
+  assert {
+    condition     = aws_rds_cluster.this[0].serverlessv2_scaling_configuration[0].min_capacity == 0 && aws_rds_cluster.this[0].serverlessv2_scaling_configuration[0].seconds_until_auto_pause == 300
+    error_message = "Zero minimum must configure the five-minute connection-free auto-pause interval."
+  }
+}
+run "aurora_custom_auto_pause" {
+  command = plan
+  variables {
+    aurora_min_capacity             = 0
+    aurora_seconds_until_auto_pause = 900
+  }
+  assert {
+    condition     = aws_rds_cluster.this[0].serverlessv2_scaling_configuration[0].seconds_until_auto_pause == 900
+    error_message = "Caller-selected auto-pause interval must reach Aurora."
+  }
+}
+run "reject_zero_ceiling" {
+  command = plan
+  variables {
+    aurora_min_capacity = 0
+    aurora_max_capacity = 0
+  }
+  expect_failures = [var.aurora_max_capacity]
+}
+run "reject_short_auto_pause" {
+  command = plan
+  variables { aurora_seconds_until_auto_pause = 299 }
+  expect_failures = [var.aurora_seconds_until_auto_pause]
+}
+run "reject_long_auto_pause" {
+  command = plan
+  variables { aurora_seconds_until_auto_pause = 86401 }
+  expect_failures = [var.aurora_seconds_until_auto_pause]
+}
+run "reject_fractional_auto_pause" {
+  command = plan
+  variables { aurora_seconds_until_auto_pause = 300.5 }
+  expect_failures = [var.aurora_seconds_until_auto_pause]
 }
 run "reject_inverted_capacity" {
   command = plan

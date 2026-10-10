@@ -5,7 +5,11 @@ an estimate for the new managed-domain topology, not a bill, capacity benchmark,
 regional availability check or approval to deploy. No AWS account was queried.
 No free tiers, credits, Savings Plans, taxes or negotiated discounts are assumed.
 
-## Always-on baseline
+The [idle/active comparison](idle-cost-estimate.md) prices the low-idle design
+separately. The two-ALB/NAT figures below retain the original baseline assumptions;
+they are not the single-ALB/public-IP estimate or a measured bill.
+
+## Original always-on baseline
 
 Assume one backend and one launcher (each 0.5 vCPU / 2 GiB), two **private** ALBs,
 one NAT gateway/EIP, one Aurora Serverless v2 writer at its 0.5-ACU floor, 20 GB of
@@ -72,8 +76,11 @@ that saves controller runtime initially but does **not** stop database/NAT/ALB c
 
 Storage and I/O are additional. The ceiling bounds compute scaling, not total
 spend. An average one-ACU database raises the baseline by $43.80/month.
-Persistent owner connections mean this is **not an auto-pause workload**; do not
-estimate zero compute while idle. Failover/connection-loss recovery is a separate
+While Dispatch owners remain running, their persistent connections **prevent
+auto-pause**; do not estimate zero compute from browser inactivity alone. An
+explicit zero-ACU setting can permit Aurora to pause only after every connection
+closes; see the [idle comparison and wake constraints](idle-cost-estimate.md).
+Failover/connection-loss recovery is a separate
 application qualification, not transparent reconnect promised by Serverless.
 
 The selectable small-RDS alternative is **db.t4g.small**, $0.032/hour = $23.36/month,

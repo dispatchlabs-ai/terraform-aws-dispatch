@@ -17,12 +17,12 @@ variable "aurora_engine_version" {
   }
 }
 variable "aurora_min_capacity" {
-  description = "Minimum ACUs. Keep at least 0.5: Dispatch retains owner connections and is not an auto-pause workload."
+  description = "Minimum ACUs. Zero enables auto-pause only after every application/operator connection closes; running owners prevent pause."
   type        = number
   default     = 0.5
   validation {
-    condition     = var.aurora_min_capacity >= 0.5 && var.aurora_min_capacity <= 128 && floor(var.aurora_min_capacity * 2) == var.aurora_min_capacity * 2
-    error_message = "Use 0.5–128 ACUs in half-ACU increments; scale-to-zero is deliberately excluded."
+    condition     = var.aurora_min_capacity >= 0 && var.aurora_min_capacity <= 128 && floor(var.aurora_min_capacity * 2) == var.aurora_min_capacity * 2
+    error_message = "Use 0–128 ACUs in half-ACU increments; zero requires an auto-pause-capable engine and region."
   }
 }
 variable "aurora_max_capacity" {
@@ -30,7 +30,16 @@ variable "aurora_max_capacity" {
   type        = number
   default     = 4
   validation {
-    condition     = var.aurora_max_capacity >= var.aurora_min_capacity && var.aurora_max_capacity <= 128 && floor(var.aurora_max_capacity * 2) == var.aurora_max_capacity * 2
-    error_message = "Use half-ACU increments up to 128 and no less than the minimum."
+    condition     = var.aurora_max_capacity >= 0.5 && var.aurora_max_capacity >= var.aurora_min_capacity && var.aurora_max_capacity <= 128 && floor(var.aurora_max_capacity * 2) == var.aurora_max_capacity * 2
+    error_message = "Use 0.5–128 ACUs in half-ACU increments and no less than the minimum."
+  }
+}
+variable "aurora_seconds_until_auto_pause" {
+  description = "Connection-free interval before Aurora may pause when min capacity is zero. Does not retire Dispatch tasks or close their owner connections."
+  type        = number
+  default     = 300
+  validation {
+    condition     = var.aurora_seconds_until_auto_pause >= 300 && var.aurora_seconds_until_auto_pause <= 86400 && floor(var.aurora_seconds_until_auto_pause) == var.aurora_seconds_until_auto_pause
+    error_message = "Use a whole number of seconds from 300 to 86400."
   }
 }

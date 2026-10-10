@@ -123,8 +123,9 @@ resource "aws_rds_cluster" "this" {
   final_snapshot_identifier       = "${var.name}-aurora-final"
   apply_immediately               = false
   serverlessv2_scaling_configuration {
-    min_capacity = var.aurora_min_capacity
-    max_capacity = var.aurora_max_capacity
+    min_capacity             = var.aurora_min_capacity
+    max_capacity             = var.aurora_max_capacity
+    seconds_until_auto_pause = var.aurora_min_capacity == 0 ? var.aurora_seconds_until_auto_pause : null
   }
   tags = local.tags
   lifecycle { prevent_destroy = true }
