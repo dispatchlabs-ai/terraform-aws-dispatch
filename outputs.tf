@@ -3,9 +3,9 @@ output "private_subnet_ids" { value = aws_subnet.private[*].id }
 output "worker_security_group_id" { value = aws_security_group.tasks["worker"].id }
 output "worker_task_definition_arn" { value = try(aws_ecs_task_definition.worker[0].arn, null) }
 output "ecr_repository_url" { value = aws_ecr_repository.this.repository_url }
-output "database_address" { value = aws_db_instance.this.address }
+output "database_address" { value = local.database_address }
 output "database_master_secret_arn" {
-  value       = aws_db_instance.this.master_user_secret[0].secret_arn
+  value       = local.database_master_secret_arn
   description = "Operator bootstrap only; never inject master credentials into services/workers."
 }
 output "artifact_bucket" { value = aws_s3_bucket.artifacts.id }

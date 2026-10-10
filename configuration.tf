@@ -91,7 +91,7 @@ locals {
       "database-ca.pem" = app.database_ca_pem
       "database-init.json" = jsonencode({
         installationId  = app.installation_id
-        host            = aws_db_instance.this.address, port = 5432
+        host            = local.database_address, port = 5432
         adminSecretFile = "${local.bootstrap_directory}/rds-master.json"
         caFile          = "${local.bootstrap_directory}/database-ca.pem"
         stores          = { for store in keys(app.database_url_secret_arns) : store => "${local.bootstrap_directory}/${store}-db-url" }
@@ -116,7 +116,7 @@ locals {
       "worker-token"    = { arn = app.token_secret_arns.worker, encoding = "utf8" }
     }, lookup(var.service_deployment_mode, "launcher", "rolling") == "rolling" ? { "launcher-peer-token" = { arn = app.token_secret_arns.launcher_peer, encoding = "utf8" } } : {})
     initializer = merge({ for store, arn in app.database_url_secret_arns : "${store}-db-url" => { arn = arn, encoding = "utf8" } }, {
-      "rds-master.json" = { arn = aws_db_instance.this.master_user_secret[0].secret_arn, encoding = "utf8" }
+      "rds-master.json" = { arn = local.database_master_secret_arn, encoding = "utf8" }
     })
     maintenance = merge(
       { for store in ["auth", "provider"] : "${store}-db-url" => { arn = app.database_url_secret_arns[store], encoding = "utf8" } },

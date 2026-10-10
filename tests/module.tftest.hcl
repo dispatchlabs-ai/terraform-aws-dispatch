@@ -54,6 +54,12 @@ mock_provider "aws" {
   mock_data "aws_partition" {
     defaults = { partition = "aws" }
   }
+  mock_resource "aws_rds_cluster" {
+    defaults = {
+      endpoint           = "database.example.internal"
+      master_user_secret = [{ secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:master-example", kms_key_id = "example", secret_status = "active" }]
+    }
+  }
   mock_resource "aws_db_instance" {
     defaults = {
       address            = "database.example.internal"
@@ -115,7 +121,7 @@ run "foundation" {
     error_message = "Foundation must not start executors or register worker images."
   }
   assert {
-    condition     = aws_db_instance.this.deletion_protection && aws_db_instance.this.storage_encrypted
+    condition     = aws_rds_cluster.this[0].deletion_protection && aws_rds_cluster.this[0].storage_encrypted
     error_message = "Persistent database must be protected and encrypted."
   }
 }
@@ -181,7 +187,7 @@ run "initializer_scope" {
     enable_database_initializer = true
   }
   assert {
-    condition     = length(local.generated_database_initializer.secrets) == 8 && !contains(values(local.generated_services.backend.secrets), aws_db_instance.this.master_user_secret[0].secret_arn) && length(local.generated_services.launcher.secrets) == 3
+    condition     = length(local.generated_database_initializer.secrets) == 8 && !contains(values(local.generated_services.backend.secrets), local.database_master_secret_arn) && length(local.generated_services.launcher.secrets) == 3
     error_message = "Only initializer gets master plus seven DB URLs; launcher gets its journal and two shared tokens."
   }
   assert {
