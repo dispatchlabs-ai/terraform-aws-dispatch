@@ -51,6 +51,10 @@ mock_provider "aws" {
     }
   }
 }
+mock_provider "aws" {
+  alias = "edge"
+  mock_data "aws_region" { defaults = { region = "us-east-1", name = "us-east-1" } }
+}
 variables {
   name               = "dispatch-example"
   availability_zones = ["us-east-1a", "us-east-1b"]

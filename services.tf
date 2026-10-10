@@ -36,11 +36,11 @@ resource "aws_ecs_task_definition" "stable" {
     for_each = local.mounted_paths
     content { name = volume.key }
   }
-  container_definitions = jsonencode([
+  container_definitions = jsonencode(concat([
     local.volume_init,
     merge(local.runtime, {
       name         = each.key, command = ["dispatch-bootstrap", each.key],
-      environment  = [for name, value in each.value.environment : { name = name, value = value }],
+      environment  = [for name, value in merge(each.value.environment, local.tracing_environment[each.key]) : { name = name, value = value }],
       secrets      = [for name, arn in each.value.secrets : { name = name, valueFrom = arn }],
       portMappings = [{ containerPort = each.key == "backend" ? 3001 : 8830, hostPort = each.key == "backend" ? 3001 : 8830, protocol = "tcp" }],
       logConfiguration = { logDriver = "awslogs", options = {
@@ -53,7 +53,7 @@ resource "aws_ecs_task_definition" "stable" {
         interval = 5, timeout = 5, retries = 3, startPeriod = 300
       }
     } : {})
-  ])
+  ], local.tracing_containers[each.key]))
   lifecycle {
     precondition {
       condition     = var.application != null
@@ -104,14 +104,14 @@ resource "aws_ecs_task_definition" "worker" {
       linuxParameters        = { initProcessEnabled = true, capabilities = { add = [], drop = var.worker_package_installation ? [] : ["ALL"] } },
       name                   = "worker", command = ["dispatch-worker"],
       workingDirectory       = "/workspace",
-      environment            = [{ name = "DISPATCH_WORKSPACE_DIR", value = "/workspace" }],
+      environment            = [for name, value in merge({ DISPATCH_WORKSPACE_DIR = "/workspace" }, local.tracing_environment.worker) : { name = name, value = value }],
       portMappings           = [{ containerPort = 8831, hostPort = 8831, protocol = "tcp" }],
       logConfiguration = { logDriver = "awslogs", options = {
         awslogs-group  = aws_cloudwatch_log_group.this["worker"].name,
         awslogs-region = data.aws_region.current.region, awslogs-stream-prefix = "worker"
       } }
       })
-  ]))
+  ], local.tracing_containers.worker))
   lifecycle {
     precondition {
       condition     = !var.worker_package_installation || var.worker_image != null
@@ -189,6 +189,12 @@ resource "aws_ecs_service" "stable" {
   tags       = local.tags
 }
 resource "aws_lb" "this" {
+  access_logs {
+    enabled = true
+    bucket  = aws_s3_bucket.access_logs.id
+    prefix  = "public"
+  }
+  depends_on                 = [aws_s3_bucket_policy.access_logs, aws_s3_bucket_server_side_encryption_configuration.access_logs]
   count                      = local.backend_alb_enabled ? 1 : 0
   name                       = var.name
   internal                   = var.internal_alb

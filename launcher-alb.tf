@@ -1,6 +1,12 @@
 # All ordinary launcher callers use this ingress before rolling is enabled.
 # Peer handover remains direct and authenticated, not load balanced.
 resource "aws_lb" "launcher" {
+  access_logs {
+    enabled = true
+    bucket  = aws_s3_bucket.access_logs.id
+    prefix  = "internal"
+  }
+  depends_on                 = [aws_s3_bucket_policy.access_logs, aws_s3_bucket_server_side_encryption_configuration.access_logs]
   count                      = var.launcher_internal_alb ? 1 : 0
   name                       = "${var.name}-launcher"
   internal                   = true
