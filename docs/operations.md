@@ -58,21 +58,58 @@ its replacement adopts the new image. StopTask acknowledgement, missing inventor
 expired leases and lost connections are not termination proof. Reconcile the same
 immutable attempt after uncertainty; never silently allocate another one.
 
-## Idle sleep and wake boundaries
+## Operator sleep and wake
 
-The low-idle networking/zero-ACU inputs do not themselves retire application tasks.
-Sleep/wake for this slice is explicitly IAM operator-driven, not automatic browser
-wake or a background idle scheduler. Session authentication currently reads
-PostgreSQL; contacting it can resume Aurora before user validation succeeds.
+**Source tooling, not verified AWS sleep/wake.** The low-idle inputs do not
+schedule retirement. There is no idle timer or anonymous browser wake; current
+session authentication reads PostgreSQL and can wake it before validation.
+Use compatible sleep-capable images, `enable_activation = true`, and re-export
+`sleep`, `activation`, `controller_services`, both cluster ARNs, `task_subnet_ids`
+and `task_assign_public_ip`. The complete caller does this; refresh its private
+`terraform output -json` file after applying the registered definitions.
 
-**Do not use the existing `/internal/drain` as proof of harmless idle shutdown:**
-it cancels work. Non-cancelling sleep requires sealed admission and native task /
-unsettled-submission inspection, including background work; busy or unknown state
-must refuse sleep. `waitForIdle()` alone excludes background tasks. Until that gate
-and the operator procedure are implemented/reviewed, safe idle sleep remains
-unavailable—not an achieved $27/month runtime result. Never clear recovery latches
-or replay uncertain writes to make wake succeed. Review connection deadlines and
-report complete controller/database readiness, not only Aurora's advertised resume.
+Preview is local and does not call AWS:
+
+```sh
+python3 scripts/run-installation.py sleep --outputs OUTPUTS \
+  --account "$AWS_ACCOUNT_ID" --region "$AWS_REGION"
+python3 scripts/run-installation.py wake --outputs OUTPUTS \
+  --account "$AWS_ACCOUNT_ID" --region "$AWS_REGION"
+```
+
+After reviewing identities/costs and holding exclusive lifecycle control, execute
+one selected operation with `--execute --confirm-exclusive-control --receipt
+/private/NEW-lifecycle.json`. No concurrent operator, Terraform apply or scheduler
+may change counts/admission. The helper also reserves a sibling `.task.json`
+receipt before the one operator task; never overwrite/reuse either file.
+
+Sleep requires both single-instance controllers steady and their exact identities
+observable. The private `/internal/sleep` gate seals new work, inspects native
+foreground/background tasks and unsettled submissions, and retires only idle
+workers through existing launcher termination evidence. **`/internal/drain`
+cancels work and is not a safe idle gate.** `waitForIdle()` alone is insufficient.
+Only successful quiescence authorizes backend scale-down, confirmed captured-task
+`STOPPED`, then launcher scale-down/confirmation. Support callbacks stay open
+while admitted work finishes. A busy/unknown result must not stop controllers;
+partial refusal can already have retired idle workers. Reconcile state, then use
+explicit private activation/undrain to reopen surviving admission when safe.
+
+Wake requires both controllers stopped, with worker/task inventory described by
+actual state: pending, running, stopping or unknown identities refuse wake. Desired
+`STOPPED` is not actual `STOPPED`; empty desired-PENDING discovery proves nothing. Start launcher,
+then backend; wait for non-mutating startup/liveness before the **single** private
+activation request. Admission-dependent readiness cannot authorize that request.
+Then observe readiness separately. Retired workers return through fresh attempts
+and disposable-workspace recovery, not restored local files.
+
+On refusal, timeout or uncertainty, inspect both receipts and exact task/service
+state; **do not rerun mutations**. Partial lifecycle state requires reconciliation,
+not a new wake or sleep request. Never clear recovery latches or replay uncertain
+writes. Reconcile the intended service counts in the caller before a later apply,
+which can otherwise undo imperative sleep. Controller termination does not prove
+Aurora paused: verify zero `ServerlessDatabaseCapacity` and pause events without
+opening a database connection. Retained ALB/storage/secrets/DNS still cost money;
+report complete cold-wake latency, not only Aurora's advertised resume interval.
 
 ## Maintenance and recovery
 
