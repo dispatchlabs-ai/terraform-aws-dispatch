@@ -8,7 +8,7 @@ variable "name" {
 variable "availability_zones" {
   type = list(string)
   validation {
-    condition     = length(distinct(var.availability_zones)) == 2
+    condition     = length(var.availability_zones) == 2 && length(distinct(var.availability_zones)) == 2
     error_message = "Supply exactly two distinct availability zones."
   }
 }
@@ -70,25 +70,6 @@ variable "cpu_architecture" {
     error_message = "Select ARM64 or X86_64."
   }
 }
-variable "services" {
-  description = "Nonsecret runtime environment and exact Secrets Manager ARN references; secret values never enter Terraform."
-  type = map(object({
-    environment = map(string)
-    secrets     = map(string)
-  }))
-  default = {
-    backend  = { environment = {}, secrets = {} }
-    launcher = { environment = {}, secrets = {} }
-  }
-  validation {
-    condition     = toset(keys(var.services)) == toset(["backend", "launcher"])
-    error_message = "Supply only backend and launcher configurations."
-  }
-  validation {
-    condition     = alltrue([for service in values(var.services) : length(setintersection(toset(keys(service.environment)), toset(keys(service.secrets)))) == 0])
-    error_message = "Environment and secret names must not overlap."
-  }
-}
 variable "secret_kms_key_arns" {
   type    = set(string)
   default = []
@@ -114,24 +95,10 @@ variable "client_cidrs" {
   type    = set(string)
   default = []
 }
-variable "database_initializer" {
-  description = "Optional operator-only one-off task definition. Never scheduled; resolved master/provisioning credentials stay out of Terraform. Remove after bootstrap."
-  type = object({
-    command     = list(string)
-    environment = map(string)
-    secrets     = map(string)
-  })
-  default = null
-  validation {
-    condition     = var.database_initializer == null ? true : length(var.database_initializer.command) > 0 && length(setintersection(toset(keys(var.database_initializer.environment)), toset(keys(var.database_initializer.secrets)))) == 0
-    error_message = "Provide an explicit operator command and distinct environment/secret variable names."
-  }
-}
-
 variable "backend_health_check_path" {
   description = "ALB process-liveness path. Use /internal/health with a supporting image; it must remain healthy during intentional drain. Public /internal access stays blocked."
   type        = string
-  default     = "/"
+  default     = "/internal/health"
   validation {
     condition     = startswith(var.backend_health_check_path, "/")
     error_message = "Health check path must start with /."

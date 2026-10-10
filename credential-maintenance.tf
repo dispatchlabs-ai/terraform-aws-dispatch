@@ -1,10 +1,6 @@
 # Optional unscheduled private credential-authority terminal. Never a service.
 # Independently confirm backend/previous maintenance executors STOPPED before RunTask.
-variable "credential_maintenance" {
-  type    = object({ environment = map(string), secrets = map(string) })
-  default = null
-}
-locals { credential_maintenance_enabled = var.credential_maintenance != null && var.image != null }
+locals { credential_maintenance_enabled = local.generated_credential_maintenance != null && var.image != null }
 resource "aws_ecs_cluster" "credential_maintenance" {
   count = local.credential_maintenance_enabled ? 1 : 0
   name  = "${var.name}-credential-maintenance"
@@ -56,7 +52,7 @@ resource "aws_iam_role_policy" "credential_maintenance_execution" {
   policy = jsonencode({ Version = "2012-10-17", Statement = concat([
     { Effect = "Allow", Action = ["ecr:GetAuthorizationToken"], Resource = "*" },
     { Effect = "Allow", Action = ["ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage"], Resource = concat([aws_ecr_repository.this.arn], tolist(var.image_pull_repository_arns)) },
-    { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = distinct(values(var.credential_maintenance.secrets)) }
+    { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = distinct(values(local.generated_credential_maintenance.secrets)) }
     ], length(var.secret_kms_key_arns) == 0 ? [] : [{
       Effect    = "Allow", Action = ["kms:Decrypt"], Resource = tolist(var.secret_kms_key_arns),
       Condition = { StringEquals = { "kms:ViaService" = "secretsmanager.${data.aws_region.current.region}.amazonaws.com" } }
@@ -99,14 +95,14 @@ resource "aws_ecs_task_definition" "credential_maintenance" {
       readonlyRootFilesystem = false,
       # Default container capabilities let the root Exec agent drop to service UID/GID.
       linuxParameters = { initProcessEnabled = true, capabilities = { add = [], drop = [] } },
-      environment     = [for name, value in var.credential_maintenance.environment : { name = name, value = value }],
-      secrets         = [for name, arn in var.credential_maintenance.secrets : { name = name, valueFrom = arn }]
+      environment     = [for name, value in local.generated_credential_maintenance.environment : { name = name, value = value }],
+      secrets         = [for name, arn in local.generated_credential_maintenance.secrets : { name = name, valueFrom = arn }]
       # Deliberately no container logConfiguration. OAuth output belongs only to the private TTY.
     })
   ])
   lifecycle {
     precondition {
-      condition     = lookup(var.service_desired_counts, "backend", var.desired_count) == 0 && var.database_initializer == null
+      condition     = lookup(var.service_desired_counts, "backend", var.desired_count) == 0 && local.generated_database_initializer == null
       error_message = "Credential maintenance requires backend desired zero and no database initializer; actual termination is a separate operator check."
     }
   }
@@ -118,21 +114,4 @@ output "credential_maintenance" {
     task_definition_arn = aws_ecs_task_definition.credential_maintenance[0].arn
     security_group_id   = aws_security_group.credential_maintenance[0].id
   } : null
-}
-
-resource "aws_vpc_security_group_egress_rule" "credential_maintenance_activation" {
-  count                        = local.credential_maintenance_enabled ? 1 : 0
-  security_group_id            = aws_security_group.credential_maintenance[0].id
-  referenced_security_group_id = aws_security_group.tasks["backend"].id
-  ip_protocol                  = "tcp"
-  from_port                    = 3001
-  to_port                      = 3001
-}
-resource "aws_vpc_security_group_ingress_rule" "credential_maintenance_activation" {
-  count                        = local.credential_maintenance_enabled ? 1 : 0
-  security_group_id            = aws_security_group.tasks["backend"].id
-  referenced_security_group_id = aws_security_group.credential_maintenance[0].id
-  ip_protocol                  = "tcp"
-  from_port                    = 3001
-  to_port                      = 3001
 }

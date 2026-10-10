@@ -1,7 +1,7 @@
 # This registers an operator task; no service, RunTask or local-exec is created.
 # The operator independently verifies stopped controllers before invoking it.
 locals {
-  database_initializer_enabled = var.database_initializer != null && var.image != null
+  database_initializer_enabled = local.generated_database_initializer != null && var.image != null
 }
 resource "aws_security_group" "database_initializer" {
   count       = local.database_initializer_enabled ? 1 : 0
@@ -53,8 +53,8 @@ resource "aws_iam_role_policy" "database_initializer_execution" {
     { Effect = "Allow", Action = ["ecr:GetAuthorizationToken"], Resource = "*" },
     { Effect = "Allow", Action = ["ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage"], Resource = concat([aws_ecr_repository.this.arn], tolist(var.image_pull_repository_arns)) },
     { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = "${aws_cloudwatch_log_group.this["bootstrap"].arn}:*" }
-    ], length(var.database_initializer.secrets) == 0 ? [] : [
-    { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = distinct(values(var.database_initializer.secrets)) }
+    ], length(local.generated_database_initializer.secrets) == 0 ? [] : [
+    { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = distinct(values(local.generated_database_initializer.secrets)) }
     ], length(var.secret_kms_key_arns) == 0 ? [] : [
     { Effect = "Allow", Action = ["kms:Decrypt"], Resource = tolist(var.secret_kms_key_arns), Condition = { StringEquals = { "kms:ViaService" = "secretsmanager.${data.aws_region.current.region}.amazonaws.com" } } }
   ]) })
@@ -79,9 +79,9 @@ resource "aws_ecs_task_definition" "database_initializer" {
   container_definitions = jsonencode([
     local.volume_init,
     merge(local.runtime, {
-      name        = "database-init", command = var.database_initializer.command,
-      environment = [for name, value in var.database_initializer.environment : { name = name, value = value }],
-      secrets     = [for name, arn in var.database_initializer.secrets : { name = name, valueFrom = arn }],
+      name        = "database-init", command = local.generated_database_initializer.command,
+      environment = [for name, value in local.generated_database_initializer.environment : { name = name, value = value }],
+      secrets     = [for name, arn in local.generated_database_initializer.secrets : { name = name, valueFrom = arn }],
       logConfiguration = { logDriver = "awslogs", options = {
         awslogs-group  = aws_cloudwatch_log_group.this["bootstrap"].name,
         awslogs-region = data.aws_region.current.region, awslogs-stream-prefix = "database-init"

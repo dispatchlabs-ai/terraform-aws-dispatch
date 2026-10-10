@@ -20,7 +20,7 @@ locals {
   }
 }
 resource "aws_ecs_task_definition" "stable" {
-  for_each                 = var.image == null ? {} : var.services
+  for_each                 = var.image == null ? {} : local.generated_services
   family                   = "${var.name}-${each.key}"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
@@ -55,6 +55,10 @@ resource "aws_ecs_task_definition" "stable" {
     } : {})
   ])
   lifecycle {
+    precondition {
+      condition     = var.application != null
+      error_message = "A controller image requires complete typed application configuration; task-local SQLite fallback is not supported."
+    }
     precondition {
       condition     = each.key != "backend" || lookup(var.service_deployment_mode, each.key, "stop-first") != "rolling" || var.certificate_arn != null
       error_message = "Rolling backend deployment requires the module ALB readiness check and a certificate."
@@ -136,7 +140,7 @@ resource "aws_service_discovery_service" "stable" {
   tags = local.tags
 }
 resource "aws_ecs_service" "stable" {
-  for_each                           = var.image == null ? {} : var.services
+  for_each                           = var.image == null ? {} : local.generated_services
   name                               = each.key
   cluster                            = aws_ecs_cluster.this.id
   task_definition                    = aws_ecs_task_definition.stable[each.key].arn
