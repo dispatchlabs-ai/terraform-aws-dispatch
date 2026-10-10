@@ -174,3 +174,36 @@ Actual CDN/API/SSE behavior, log/trace delivery, Aurora initialization/failover,
 Spot interruption, provider login, zero-downtime continuity and fresh-account
 installation remain **unverified**. Public artifacts/registry registration remain
 gated on the open-source release; source publication is not that qualification.
+
+## Idle-cost source acceptance — October 10, 2026
+
+Module `192c6ce` and application `a502fc8` implement the operator-driven low-idle
+profile. Source review by Pi/Deslop has no remaining blocker in scope. Retirement
+reuses existing admission/native inspection and launcher evidence; planned-health
+acceptance does not reopen public admission. Read-only owner-status polling precedes
+one activation POST. Fresh controller identities/counts are rechecked after gating
+and before mutations; actual STOPPED/clean-exit checks remain required.
+
+Deployer reports independent Git-archive/external-caller passes at `8b8ee00` on
+Terraform **1.13.5** / OpenTofu **1.12.6**, provider **6.67.0**: **28 mock plans per
+engine**, **33 Python checks**, **9 operator-request cases** and edge checks.
+`192c6ce` adds a drift-refusal guard/test and corrects output wording, not different
+infrastructure. Pi verifies all **11 lifecycle checks**. Documenter independently
+reran **34 Python checks**, the **9 operator-request cases**, and complete caller
+init/validate on Terraform **1.13.5** / OpenTofu **1.13.1** after the correction.
+These are offline/source checks, not AWS plans/applies or application runtime tests.
+
+For application `a502fc8`, Developer reports integrated npm type/build checks,
+Apple Silicon Nix application/frontend builds and flake evaluation passed; zero
+runnable Darwin checks and incompatible Linux checks omitted. Pi's `1114256` slice
+has matching reviewed server source and owner-reported build/whitespace passes.
+
+The [idle/active model](../releases/idle-cost-estimate.md) prices the stated sleeping
+installation at **$26.73/month fixed/assumed-storage**, conditional on stopped tasks
+and genuinely paused Aurora, with usage/wake exclusions. A sleeping conversation
+has no task/IP cost, but still shares this installation's retained floor. This is
+not a measured bill, demonstrated global minimum or automatic idle policy.
+
+Actual non-cancelling busy/background refusal, clean sleep/reopen, Aurora pause,
+complete wake latency and billing remain **unverified**. No customer/live AWS
+access, migration or image/registry publication is established by this acceptance.
