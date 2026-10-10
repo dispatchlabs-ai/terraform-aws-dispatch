@@ -122,3 +122,12 @@ source checks and actual runtime evidence for:
 No EFS or speculative workspace filesystem is required. Keep temporary working
 files disposable and artifacts durable in ordinary S3. Independent-engine mock
 plans and source builds remain distinct from AWS/CDN/database/Spot execution.
+
+Cost estimates are an explicit completion requirement (October 10). Provide a
+dated regional estimate with prices/sources and workload assumptions: fixed
+foundation/control-plane costs at zero workers; Aurora Serverless v2 versus small
+RDS at idle and active use; On-Demand versus Spot worker-hours; logs/traces,
+ALB/LCUs, NAT/data transfer, CloudFront, DNS, S3 and storage/backup costs. State
+architecture/task sizing, expected ACU-hours, retained connections and exclusions.
+Separate AWS usage costs from model/MCP charges, taxes and discounts; do not
+present a sizing estimate as an invoice or a universal cheapest configuration.
