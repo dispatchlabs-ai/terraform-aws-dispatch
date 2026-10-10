@@ -1,0 +1,155 @@
+# Installation
+
+Use a fresh dedicated installation. This guide does not convert another store,
+reuse a customer's environment or authorize an AWS apply. The
+[complete example](../examples/complete/README.md) is the owning caller root.
+
+## 1. Prepare the caller
+
+Choose one engine, its supported version, AWS provider lockfile, region, two
+availability zones and a restricted remote state backend. Check the AWS identity
+before planning. Restrict state/plan access even though secret values are not
+module inputs. Choose the final HTTPS origin before enrollment: changing the
+hostname changes the passkey relying-party identity.
+
+Supply an issued regional ACM certificate and create your DNS alias to
+`alb_dns_name`/`alb_zone_id`. The module does not own your domain. Decide whether
+ALB ingress is internal or public and supply approved client CIDRs. Validate
+network reachability for image pulls, logs and the selected model/MCP providers.
+
+## 2. Apply foundation only
+
+Keep `application`, `image` and `worker_image` null, `desired_count = 0`, and
+operator-task switches false. Review the actual saved plan/cost, then apply.
+RDS, NAT, storage and other foundation resources incur costs at zero tasks.
+Read `database_address` and the RDS-managed `database_master_secret_arn`; only a
+one-off database initializer may receive master authority.
+
+## 3. Prepare retained secrets and trust
+
+Create/populate installation-owned Secrets Manager values through your trusted
+private secret-management workflow, **not Terraform secret-version resources**.
+The renderer takes exact ARN references and writes restricted task-local files.
+Retain matching versions outside task storage. Never regenerate keys on restart.
+
+Populate `application` with:
+
+| Input | Requirement |
+| --- | --- |
+| `installation_id`, `company_id`, `company_name` | Stable installation/company identity, not credentials |
+| `origin` | Final HTTPS origin |
+| `configuration_revision` | Shared backend/launcher worker-configuration identity |
+| `database_ca_pem` | Reviewed PostgreSQL CA trust, verified against the RDS hostname |
+| `backend_ca_pem` | Trust for the private backend and worker callback TLS |
+| `backend_certificate_pem` | Backend leaf certificate/chain covering `backend.<name>.internal` |
+| `backend_private_key_secret_arn` | Exact secret reference for its matching private key |
+| `database_url_secret_arns` | Seven distinct URL secrets: `auth`, `provider`, `catalog`, `directory`, `routing`, `launcher`, `workers` |
+| `encryption_key_secret_arns` | Three retained key secrets: `auth`, `provider`, `catalog` |
+| `token_secret_arns` | Five retained tokens: `worker`, `launcher`, `operator`, `backend_peer`, `launcher_peer` |
+
+Key secret values are canonical padded base64 for 32 random bytes. Token values
+are retained base64url text. All seven URL secrets use the actual RDS endpoint,
+distinct lowercase role/database names and distinct passwords generated from at
+least 32 random bytes as unpadded base64url. Do not add URL query parameters or
+SSL overrides. The initializer validates these requirements before mutation.
+`catalog` holds the MCP connection catalog; `workers` is the per-conversation
+provisioner store. The renderer supplies all six persistent backend configurations
+and the separate launcher journal; do not substitute a partial map that could
+fall back to disposable SQLite.
+
+The optional private callback ALB certificate must match
+`callbacks.<name>.internal` and chain to `backend_ca_pem`. This is separate from
+the public origin certificate. Configure `launcher_internal_alb = true` for that
+callback ingress. Certificates/CA text are public configuration; private keys,
+credential-bearing URLs and tokens remain secret. Supply `secret_kms_key_arns`
+when those secrets use customer-managed KMS encryption.
+
+Select compatible digest-pinned controller and Ubuntu-worker images for the
+same Linux architecture. The [release contract](releases.md) explains artifact
+selection. Missing public release artifacts are a release blocker, not permission
+to use fabricated digests. Keep counts zero while preparing definitions.
+
+## 4. Initialize and verify explicitly
+
+Enable `enable_database_initializer`, plan/apply the one-off definition while
+controllers/workers remain stopped, and independently confirm actual task
+termination. Zero desired count alone is not termination proof. The operator runs
+in the **service cluster**, never the worker-only cluster.
+
+The default initializer operation is read-only verification. For fresh creation,
+explicitly invoke the released image's command override:
+
+```text
+dispatch-bootstrap database-init --config /tmp/dispatch-bootstrap/database-init.json --create --confirm-services-stopped
+```
+
+From the caller root, export nonsecret operator outputs privately with
+`tofu output -json > /path/to/operator-outputs.json` (or `terraform output -json`).
+From the module checkout, preview first using Python 3.10+ and AWS CLI:
+
+```sh
+python3 scripts/run-operator.py run --outputs /path/to/operator-outputs.json \
+  --operation database-create --account "$AWS_ACCOUNT_ID" --region "$AWS_REGION" \
+  --confirm-services-stopped
+```
+
+After independently confirming stopped owners and reviewing the preview, add
+`--execute --receipt /path/to/create-receipt.json` to submit **once**. A successful
+submission is not command completion. Observe the exact recorded task:
+
+```sh
+python3 scripts/run-operator.py observe --receipt /path/to/create-receipt.json \
+  --account "$AWS_ACCOUNT_ID" --region "$AWS_REGION" --wait-seconds 600
+```
+
+Then run a separate verification task with `--operation database-verify`, the
+same stopped-owner assertion and a new receipt path. Inspect the
+actual task STOPPED state and **all** container exit codes for each invocation.
+A stop request, waiter timeout or healthy database is not success. Observation
+exit code 2 means incomplete; observe the same receipt again, do not rerun `run`.
+If submission itself is uncertain, preserve its prewritten receipt/client token
+and reconcile privately; this helper does not automatically replay RunTask. On failure or
+uncertain create result, preserve the original secrets and partial database state;
+inspect privately. Do not automatically retry, reset roles or delete databases.
+`--verify` checks a complete contract; it does not repair a partial result.
+
+Remove the temporary initializer definition/authority after successful bootstrap
+without deleting stores or secrets. The application owns schema startup; this
+operator is not a schema migration engine.
+
+## 5. Start, activate and enroll
+
+Set `desired_count = 1` with `service_desired_counts = { backend = 0 }`
+while starting the launcher; verify its selected worker definition/revision and
+permissions. Clear the override to start the backend and enable
+`enable_activation`. Fresh installation admission is closed. Reach the backend
+**privately**, using the operator token and reviewed CA supplied to the activation-only task, and invoke
+`POST /internal/undrain` before waiting for backend readiness. The backend also
+undrains its launcher. The registered activation task performs this call with
+verified TLS, without token argv or database credentials. Public and callback listeners are not maintenance routes.
+Waiting for readiness first can deadlock this intentional admission gate.
+
+Use the dedicated activation-only operator path; credential maintenance has a
+stopped-backend precondition and must not be repurposed. Do not pass a token on
+argv or expose maintenance publicly. Export current caller outputs again, then preview/execute `--operation activate`
+with `scripts/run-operator.py` and a **new** activation receipt path. Do not pass
+`--confirm-services-stopped` as evidence for activation: controllers must be
+started. Observe that receipt read-only until successful termination.
+Confirm the activation helper has terminated,
+then verify controller readiness, ALB targets and signed-out HTTPS.
+
+Provision the first account using the released `dispatch-auth` operator command
+with the same company/origin/store settings. Deliver invitation links privately;
+they are secrets and must not appear in task logs or receipts. Configure separate
+installation model authorization rather than copying a developer's Pi login.
+Provider authorization is not model selection: choose a model from the authorized
+provider afterward. Hosted OAuth challenges require an authorized human.
+
+## 6. Verify the result
+
+Sign in, create a chat, obtain a real model response and harmless tool result,
+reload retained history and check attachments if enabled. Verify one executor per
+conversation and confirmed old-worker termination before a replacement starts.
+Record exact module/image revisions and scoped outcomes. This handoff is not
+complete because a landing page returns HTTP 200. See
+[release acceptance](releases.md#fresh-install-acceptance).
