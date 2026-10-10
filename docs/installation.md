@@ -93,18 +93,39 @@ release; absence of that bundle is a release blocker, not permission to use a
 fabricated archive or an unrelated local build.
 
 The caller exports `frontend_bucket`, `frontend_distribution_id` and
-`frontend_release_prefix`; supply a versioned `frontend_release_prefix` such as
-`releases/<release-id>`, not a customer identity or a mutable "latest" prefix.
-Publication is an explicit operator action outside Terraform. Publish hash-named `/assets/*` into the stable append-only asset location and
-index/release metadata into the immutable frontend release prefix. Merely keeping
-old prefixes does not preserve an open client's absolute `/assets/<hash>` URLs. On first foundation, the empty bucket/distribution is not a serving installation;
-finish publication before enrollment/readiness acceptance. For updates, stage the
-full next bundle and its shared assets before selecting the index prefix in the
-serving distribution; never overwrite a
-serving prefix or delete earlier releases. Hash-named assets may be cached;
-`index.html` needs short/no-cache policy. Keep the prior compatible prefix for
-rollback. Review source-controlled frontend and backend release identities
-together; an infrastructure apply does not itself publish static content.
+`frontend_release_prefix`. The artifact selector derives the immutable prefix
+`releases/sha256-<archive-digest>` from the trusted release manifest. Publication
+is an explicit operator action outside Terraform:
+
+```sh
+# Run from the caller root; outputs contain references, not resolved secrets.
+tofu output -json > /path/to/operator-outputs.json
+# From the module checkout, preview offline; use your actual qualified version/platform.
+python3 scripts/publish-frontend.py /path/to/dispatch-release.json \
+  /path/to/dispatch-frontend.tar.gz --module-version "$MODULE_VERSION" \
+  --platform linux/arm64 --outputs /path/to/operator-outputs.json \
+  --account "$AWS_ACCOUNT_ID" --region "$AWS_REGION"
+# Repeat the reviewed command with --execute --receipt /private/NEW-publication.json
+```
+
+Use `linux/amd64` when appropriate; it must match the selected application release.
+Only explicit execution calls AWS. The helper verifies archive bytes/safe paths,
+account, bucket owner/region and conditional object checksums. It publishes shared
+append-only `assets/*` first and release-prefixed `index.html` last, without
+retries, overwrites or deletes. An interrupted upload requires inspection of its
+receipt; an intentional new invocation verifies existing identical objects and
+uploads only missing ones. A mismatch blocks publication, never an overwrite.
+See the [publisher contract](../releases/README.md#spa-bundle-and-publication).
+
+On first foundation, the empty bucket/distribution is not a serving installation;
+finish verified publication before enrollment/readiness acceptance. For updates,
+upload the next bundle **before** selecting its `frontend_release_prefix` in a
+reviewed apply. Explicitly invalidate cached navigation after selection (a reviewed
+`/*` CloudFront invalidation is one option); verify browser/API behavior afterward.
+Keep old prefixes and shared assets: retained directories alone cannot preserve
+an open client's absolute `/assets/<hash>` URLs. Never use `s3 sync --delete`.
+A successful upload or apply does not establish CDN delivery or application
+activation, and public artifacts remain release-gated.
 
 CloudFront routes `/api` and `/api/*` to the private ALB with caching disabled,
 while a static-only rewrite handles SPA navigation. Verify authenticated errors

@@ -157,3 +157,16 @@ do not qualify CloudFront/VPC-origin availability, actual log/trace delivery,
 Aurora initialization/failover, Spot interruption, provider login or zero-downtime
 browser/SSE/worker continuity. Public distribution and live installation remain
 separate, unverified acceptance.
+
+
+Cost and frontend tooling follow-up: the [regional planning estimate](../releases/cost-estimate.md)
+now includes three DNS zones, workload assumptions, controller/collector headroom,
+Aurora versus small RDS and On-Demand/hypothetical Spot worker scenarios. This
+satisfies the estimate/documentation dependency, not actual billing verification.
+Application `b888a1c` provides deterministic `nix build .#frontend` packaging;
+Deployer reports build/flake checks passed. Module `8797705` verifies trusted
+manifest/archive metadata and performs explicit receipt-backed conditional S3
+publication, with 23 reported offline helper checks. Public release consumers use
+the bundle, not the application checkout. Deployer also reports a network-disabled
+collector startup check; it does not establish AWS trace delivery. Final integrated
+source review and independent caller rechecking remain pending at this checkpoint.

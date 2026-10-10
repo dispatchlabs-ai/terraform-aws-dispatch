@@ -2,7 +2,11 @@
 
 ## Costs and availability
 
-Review actual regional prices and the saved caller plan. RDS, NAT/EIP, public and
+Start with the [dated regional estimate](../releases/cost-estimate.md): roughly
+**$166/month before workers/inference** for its stated modest-traffic ARM64
+scenario, not a quote or spend ceiling. Small RDS reduces that scenario by about
+$20/month but removes automatic compute scaling. Review actual regional prices
+and the saved caller plan. RDS, NAT/EIP, public and
 private ALBs, running controller/worker tasks, logs, S3 and image storage can incur
 charges. Zero controller counts do not stop foundation costs. The baseline has
 one NAT gateway, not multi-AZ egress availability; two subnets alone do not imply
@@ -109,7 +113,7 @@ sampled tracing. These are source features, not live AWS or zero-downtime proof.
   Ordinary API queries are preserved. This protects that callback's codes from
   ALB access logs, not browser history, future CDN viewer logs or arbitrary URLs.
 - ADOT collectors receive OTLP on task loopback and export to X-Ray with write-only
-  task permissions. `trace_sample_ratio = 0.1` bounds root sampling; `enable_tracing`
+  task permissions. `trace_sample_ratio = 0.1` controls local trace-ID-ratio sampling; `enable_tracing`
   disables/enables ordinary task collection. X-Ray retains traces for its fixed
   30-day service period, not the configurable application-log retention.
 - Application HTTP/RPC spans and sampled structured request logs use safe route
