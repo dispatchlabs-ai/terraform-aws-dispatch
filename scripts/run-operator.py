@@ -98,11 +98,11 @@ class Aws:
         if profile:
             self.command += ["--profile", profile]
 
-    def call(self, service, action, payload):
+    def call(self, service, action, payload, extra_args=()):
         env = {**os.environ, "AWS_MAX_ATTEMPTS": "1", "AWS_RETRY_MODE": "standard",
                "AWS_PAGER": "", "AWS_CLI_AUTO_PROMPT": "off"}
         try:
-            result = subprocess.run(self.command + [service, action, "--cli-input-json", json.dumps(payload)],
+            result = subprocess.run(self.command + [service, action, "--cli-input-json", json.dumps(payload)] + list(extra_args),
                                     capture_output=True, text=True, timeout=90, env=env)
             require(result.returncode == 0, "AWS call failed or has uncertain outcome; do not replay a mutation.")
             return json.loads(result.stdout)

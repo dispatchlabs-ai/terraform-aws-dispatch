@@ -22,6 +22,7 @@ def fixture():
         "application_revision": "a" * 40,
         "worker_packaging_revision": "b" * 40,
         "module_versions": ["0.1.0", "0.1.1"],
+        "frontend": {"url": "https://releases.example/dispatch-frontend.tar.gz", "sha256": "e" * 64},
         "images": {
             platform: {
                 "controller": "registry.example/dispatch/controller@sha256:" + digest * 64,
@@ -43,6 +44,7 @@ class SelectionTests(unittest.TestCase):
                     "image": manifest["images"][platform]["controller"],
                     "worker_image": manifest["images"][platform]["worker"],
                     "cpu_architecture": architecture,
+                    "frontend_release_prefix": "releases/sha256-" + "e" * 64,
                 })
         self.assertEqual(manifest, original)
 

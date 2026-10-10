@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import re
 import sys
+from urllib.parse import urlsplit
 
 PLATFORMS = {"linux/arm64": "ARM64", "linux/amd64": "X86_64"}
 VERSION = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?")
@@ -35,7 +36,7 @@ def select(manifest, module_version, platform):
     require(isinstance(manifest, dict), "manifest must be an object")
     fields = {
         "schema_version", "application_version", "application_revision",
-        "worker_packaging_revision", "module_versions", "images",
+        "worker_packaging_revision", "module_versions", "images", "frontend",
     }
     require(set(manifest) == fields, "manifest fields do not match schema version 1")
     require(type(manifest["schema_version"]) is int and manifest["schema_version"] == 1,
@@ -43,6 +44,13 @@ def select(manifest, module_version, platform):
     require(matches(VERSION, manifest["application_version"]), "invalid application version")
     for field in ("application_revision", "worker_packaging_revision"):
         require(matches(REVISION, manifest[field]), "invalid source revision")
+    frontend = manifest["frontend"]
+    require(isinstance(frontend, dict) and set(frontend) == {"url", "sha256"}, "invalid frontend artifact")
+    require(matches(re.compile(r"[0-9a-f]{64}"), frontend["sha256"]), "invalid frontend checksum")
+    require(isinstance(frontend["url"], str), "invalid frontend URL")
+    url = urlsplit(frontend["url"])
+    require(url.scheme == "https" and url.hostname and not url.username and not url.password
+            and not url.query and not url.fragment and url.path.endswith(".tar.gz"), "invalid frontend URL")
     versions = manifest["module_versions"]
     require(isinstance(versions, list) and versions and all(matches(VERSION, v) for v in versions),
             "module_versions must list exact versions, without a v prefix or ranges")
@@ -61,6 +69,7 @@ def select(manifest, module_version, platform):
         "image": images[platform]["controller"],
         "worker_image": images[platform]["worker"],
         "cpu_architecture": PLATFORMS[platform],
+        "frontend_release_prefix": "releases/sha256-" + frontend["sha256"],
     }
 
 

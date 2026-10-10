@@ -125,3 +125,10 @@ private networking, operation selection, output/identity guards, intent-before-c
 refusal to overwrite/replay, ambiguous submission and exact-task/all-container
 completion. Passing them does not establish AWS IAM, secret delivery, image pulls,
 private networking, database creation or activation behavior in a real account.
+
+## Frontend assets
+
+`publish-frontend.py` previews a verified SPA archive without AWS calls. Explicit
+`--execute --receipt ...` conditionally uploads checksum-verified immutable assets
+and release files; it never applies Terraform, changes CloudFront, deletes files
+or retries mutations. See [the artifact contract](../releases/README.md#spa-bundle-and-publication).
