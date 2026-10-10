@@ -74,3 +74,30 @@ Do not remove protection merely to obtain a successful destroy. Review physical
 data deletion, version retention and recovery authority separately and obtain
 explicit authorization. The module cannot determine whether a caller's data is
 safe to discard.
+
+## Infrastructure baseline review — October 10, 2026
+
+Source audit at `9407c6a`, not a live-environment audit. The requested direction
+is cost-effective Fargate, ALB access logging, ACM/Route 53, rolling deployment,
+Secrets Manager, CloudFront for the SPA and short-retention logs/tracing, without
+an enterprise-sized platform. Current implementation does **not** meet all of it:
+
+| Area | Current module |
+| --- | --- |
+| ALB to ECS tasks | Backend ALB is conditional on certificate input; targets are task IPs, not the cluster itself. |
+| Fargate | Yes; services and operator/worker tasks use Fargate. |
+| ALB access logs | Not configured on the public or private ALBs. |
+| ACM / public DNS | Accepts existing ACM certificate ARNs; does not provision certificates or public Route 53 records. |
+| Rolling updates | Opt-in for backend/launcher; omitted modes default to stop-first. Rolling is not itself a verified zero-downtime guarantee. |
+| Secrets Manager | Yes, scoped secret references and managed database master secret. |
+| PostgreSQL | Provisioned single-AZ RDS PostgreSQL with storage growth, not autoscaling Aurora Serverless v2 compute. Compare regional/workload costs before claiming Aurora is cheapest. |
+| Durable files | S3 artifacts; no EFS or S3 Files mount. Workspaces remain disposable; add a filesystem only for an actual durability requirement. |
+| SPA / CloudFront | No CloudFront distribution or separate static frontend delivery. |
+| Fargate Spot | No capacity-provider strategy; worker launcher also explicitly requests ordinary Fargate. |
+| Observability | CloudWatch application logs, configurable retention (30-day default); no tracing export configured by the module. |
+
+These gaps require explicit implementation and scoped validation; the earlier
+mock-plan acceptance does not close them. Keep any Spot policy compatible with
+interruption handling and exclusive-worker ownership. Do not record an untested
+latest database version, auto-pause configuration or guaranteed zero downtime as
+supported behavior.
