@@ -91,8 +91,9 @@ cancels work and is not a safe idle gate.** `waitForIdle()` alone is insufficien
 Only successful quiescence authorizes backend scale-down, confirmed captured-task
 `STOPPED`, then launcher scale-down/confirmation. Support callbacks stay open
 while admitted work finishes. Planned-quiescence health may remain green while
-new-work admission is sealed; it does not mean idle or publicly serving. Cold drain,
-lost ownership and unhealthy stores must still fail normal health/readiness.
+new-work admission is sealed; it does not mean idle or publicly serving. Persisted cold drain does not
+authorize planned-quiescence readiness; lost ownership/unhealthy stores still fail
+ECS/ALB readiness. The separate liveness route is not admission or idle evidence.
 A busy/unknown result must not stop controllers;
 partial refusal can already have retired idle workers. Reconcile state, then use
 explicit private activation/undrain to reopen surviving admission when safe.
@@ -100,8 +101,9 @@ explicit private activation/undrain to reopen surviving admission when safe.
 Wake requires both controllers stopped, with worker/task inventory described by
 actual state: pending, running, stopping or unknown identities refuse wake. Desired
 `STOPPED` is not actual `STOPPED`; empty desired-PENDING discovery proves nothing. Start launcher,
-then backend; wait for non-mutating startup/liveness before the **single** private
-activation request. Admission-dependent readiness cannot authorize that request.
+then backend; poll authenticated read-only `/internal/status` until owner
+initialization before the **single** private activation request. ECS `RUNNING`,
+`/internal/health` and admission-dependent readiness cannot authorize that request.
 Then observe readiness separately. Retired workers return through fresh attempts
 and disposable-workspace recovery, not restored local files.
 
