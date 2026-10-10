@@ -65,3 +65,36 @@ Record these outcomes with exact revisions and sanitized evidence:
 Build/metadata checks, signed-out HTTP 200 and database integrity do not establish
 these outcomes. Keep customer task identities, credential references and private
 captures in the owning restricted installation evidence, not this public module.
+
+## Recorded source checks — October 10, 2026
+
+At module `0edd7f19ed461f55de466aa2e91d34936f34100d`, Documenter inspected
+Developer's integrated check output: format/init/validate and all **eight mock
+plan scenarios** passed under OpenTofu **1.13.1** and Terraform **1.13.5**, using
+AWS provider **6.67.0**. The scenarios cover foundation, public-image inputs,
+invalid pins/zones/pull authority, scoped activation, initializer separation and
+rolling configuration. Activation overrides the image ENTRYPOINT so its
+read-only operator task does not run the ordinary writable-state entrypoint.
+
+The same output records **17 offline helper tests** (seven artifact selector,
+ten operator receipt/observation checks) and activation-template syntax success.
+All scenarios are mock plans: no mock applies or AWS calls. Terraform's plan-time
+mock option is added only to an ignored fixture copy; OpenTofu runs the committed
+fixture, preserving the assertions. These are inspected owner-produced checks,
+not Documenter's repeated execution or Fargate startup proof. Pi Durable Expert
+completed final configuration/lifecycle source review of `0edd7f1` without a
+blocking finding; container hardening, scope separation and no-replay handling
+remain intact. That review is not ECS or fresh-install qualification.
+
+Earlier module-only Git archives at `af8655b` independently initialized/validated
+an external caller under Terraform 1.13.5 and OpenTofu 1.12.6/provider 6.67.0, as
+reported by Deployer. Final-revision external-caller rechecking is pending; this
+earlier result does not automatically qualify later source. Documenter's separate
+Terraform 1.13.5 caller init/validate passed before the final activation/mock fix.
+
+**Remaining acceptance:** actual public image pulls, registry registration,
+fresh-account AWS initialization/activation, private enrollment/provider terminal,
+model/tool/browser workflow, controller/worker replacement and measured rollout
+latency remain unverified. The repository remains private pending authorized
+open-source publication. Source publication is verified separately from these
+runtime and distribution outcomes.
