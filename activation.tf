@@ -142,7 +142,7 @@ output "sleep" {
     task_definition_arn = aws_ecs_task_definition.sleep[0].arn
     security_group_id   = aws_security_group.activation[0].id
   } : null
-  description = "One-shot non-cancelling sleep gate; exit 0 alone authorizes subsequent controller scale-down. Refusal/uncertainty must never stop controllers."
+  description = "One-shot non-cancelling sleep gate. Success still requires fresh worker/controller inventory and identity checks before scale-down; refusal or uncertainty must never stop controllers."
 }
 output "controller_services" {
   value = { for role, service in aws_ecs_service.stable : role => {

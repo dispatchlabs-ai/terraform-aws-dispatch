@@ -103,6 +103,16 @@ def lifecycle(aws, outputs, operation, account, region, path, wait_seconds):
     require(all(len(tasks) == desired for tasks in captured.values()), 'Controller task inventory disagrees with service counts.')
     if operation == 'wake':
         assert_workers_absent(aws, workers)
+    expected_counts = {role: desired for role in services}
+    expected_tasks = {role: list(tasks) for role, tasks in captured.items()}
+    def revalidate():
+        current = inventory(aws, cluster, services)
+        for role, item in services.items():
+            actual = current[item['arn']]
+            require(actual.get('desiredCount') == expected_counts[role] and actual.get('runningCount') == expected_counts[role]
+                    and actual.get('pendingCount') == 0, 'Controller counts drifted; lifecycle mutation refused.')
+            require({t['taskArn'] for t in controller_tasks(aws, cluster, item)} == set(expected_tasks[role]),
+                    'Controller task identities drifted; lifecycle mutation refused.')
     receipt = {'schema_version': 1, 'operation': operation, 'account': account, 'region': region,
                'cluster': cluster, 'workers': workers, 'services': services, 'captured_tasks': captured,
                'status': 'prepared', 'phase': 'preflight', 'task_receipt': str(path) + '.task.json'}
@@ -125,8 +135,9 @@ def lifecycle(aws, outputs, operation, account, region, path, wait_seconds):
             if operation == 'sleep':
                 operator_task()
                 assert_workers_absent(aws, workers)
-                inventory(aws, cluster, services)
+                revalidate()
             for role in (['backend', 'launcher'] if operation == 'sleep' else ['launcher', 'backend']):
+                revalidate()
                 save(role + '-update-intent')
                 item = services[role]
                 updated = aws.call('ecs', 'update-service', {'cluster': cluster, 'service': item['arn'], 'desiredCount': 0 if operation == 'sleep' else 1})
@@ -135,7 +146,7 @@ def lifecycle(aws, outputs, operation, account, region, path, wait_seconds):
                     current = inventory(aws, cluster, services)[item['arn']]
                     if operation == 'wake':
                         tasks = controller_tasks(aws, cluster, item)
-                        return current.get('desiredCount') == 1 and len(tasks) == 1 and tasks[0].get('lastStatus') == 'RUNNING'
+                        return current.get('desiredCount') == 1 and current.get('runningCount') == 1 and current.get('pendingCount') == 0 and len(tasks) == 1 and tasks[0].get('lastStatus') == 'RUNNING'
                     require(current.get('desiredCount') == 0, 'Controller desired count changed concurrently.')
                     exact = aws.call('ecs', 'describe-tasks', {'cluster': cluster, 'tasks': captured[role]})
                     require(not exact.get('failures') and {t.get('taskArn') for t in exact.get('tasks', [])} == set(captured[role]), 'Captured controller termination is unavailable.')
@@ -145,8 +156,12 @@ def lifecycle(aws, outputs, operation, account, region, path, wait_seconds):
                         require(all(any(c.get('name') == role and c.get('lastStatus') == 'STOPPED' and c.get('exitCode') == 0 for c in t.get('containers', [])) for t in exact['tasks']), 'Controller did not confirm clean exit; sleep is incomplete.')
                     return stopped and current.get('runningCount') == 0 and current.get('pendingCount') == 0
                 wait_until(settled, wait_seconds)
+                expected_counts[role] = 0 if operation == 'sleep' else 1
+                expected_tasks[role] = [] if operation == 'sleep' else [t['taskArn'] for t in controller_tasks(aws, cluster, item)]
+                receipt['current_tasks'] = expected_tasks
                 save(role + '-observed')
             if operation == 'wake':
+                revalidate()
                 operator_task()  # Readiness requires activation; never wait for ALB ready first.
                 def ready():
                     current = inventory(aws, cluster, services)
@@ -155,6 +170,7 @@ def lifecycle(aws, outputs, operation, account, region, path, wait_seconds):
                 wait_until(ready, wait_seconds)
             else:
                 assert_workers_absent(aws, workers)
+            revalidate()
             receipt['status'] = 'controllers-stopped' if operation == 'sleep' else 'controllers-ready'
             save('complete')
         except Exception:

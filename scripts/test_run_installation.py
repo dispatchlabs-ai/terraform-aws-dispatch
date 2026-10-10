@@ -83,6 +83,23 @@ class Tests(unittest.TestCase):
             self.assertEqual([p['service'] for p in updates], [S['backend']['arn'], S['launcher']['arn']])
             self.assertEqual(sum(a == 'run-task' for a, _ in aws.calls), 1)
             self.assertLess(next(n for n, (a, _) in enumerate(aws.calls) if a == 'run-task'), next(n for n, (a, _) in enumerate(aws.calls) if a == 'update-service'))
+    def test_controller_replacement_during_sleep_gate_refuses_all_count_changes(self):
+        class Replacement(Fake):
+            def call(self, service, action, payload, extra_args=()):
+                result = super().call(service, action, payload, extra_args)
+                if action == 'run-task':
+                    self.replaced = True
+                if action == 'list-tasks' and getattr(self, 'replaced', False) and payload.get('serviceName') == 'backend':
+                    result['taskArns'] = [T['backend'].replace('a' * 32, 'e' * 32)] if payload['desiredStatus'] == 'RUNNING' else []
+                if action == 'describe-tasks' and any('e' * 32 in t for t in payload['tasks']):
+                    result = {'tasks': [{'taskArn': payload['tasks'][0], 'clusterArn': C,
+                                        'taskDefinitionArn': S['backend']['task_definition_arn'], 'lastStatus': 'RUNNING'}]}
+                return result
+        with tempfile.TemporaryDirectory() as d:
+            aws = Replacement()
+            with self.assertRaises(i.Error): self.execute(aws, 'sleep', Path(d, 'receipt.json'))
+            self.assertFalse(any(a == 'update-service' for a, _ in aws.calls))
+
     def test_refused_gate_never_changes_counts(self):
         with tempfile.TemporaryDirectory() as d:
             aws = Fake(gate=1)
