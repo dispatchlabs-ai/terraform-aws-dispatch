@@ -249,6 +249,22 @@ run "managed_domain_baseline" {
     condition     = local.generated_services.backend.environment.DISPATCH_SERVE_CLIENT == "false" && local.generated_callback_url == "https://callbacks.dispatch.example.com:8443"
     error_message = "Managed delivery needs API-only backend and private stable callbacks."
   }
+  assert {
+    condition     = length(aws_nat_gateway.this) == 0 && length(aws_eip.nat) == 0 && length(aws_lb.launcher) == 0 && local.task_assign_public_ip
+    error_message = "Managed public-IP topology must have one private ALB and no NAT/EIP floor."
+  }
+  assert {
+    condition     = aws_lb_listener.https[0].port == 443 && aws_lb_listener.launcher[0].port == 8830 && aws_lb_listener.backend_callback[0].port == 8443 && aws_vpc_security_group_ingress_rule.private["worker_callback_alb"].from_port == 8443
+    error_message = "Shared ALB must preserve viewer, launcher and callback port isolation."
+  }
+  assert {
+    condition     = aws_lb_listener_rule.deny_internal[0].action[0].type == "fixed-response" && aws_lb_listener.backend_callback[0].default_action[0].type == "fixed-response" && one(aws_lb_listener_rule.backend_callback[0].condition).path_pattern[0].values == toset(["/internal/workers/*"])
+    error_message = "Consolidation must deny public internal routes and allowlist private callback routes."
+  }
+  assert {
+    condition     = alltrue([for service in aws_ecs_service.stable : service.network_configuration[0].assign_public_ip]) && jsondecode(local.role_public_files[0].launcher["launcher.json"]).driver.assignPublicIp
+    error_message = "Controller and worker launch paths must both select public task IPs."
+  }
 }
 
 run "empty_modes_have_rolling_peer_paths" {
@@ -266,4 +282,38 @@ run "partial_modes_keep_launcher_rolling_path" {
     condition     = toset([for key in keys(aws_vpc_security_group_ingress_rule.private) : key if endswith(key, "_peer")]) == toset(["launcher_peer"])
     error_message = "An omitted launcher mode is rolling and needs its peer path."
   }
+}
+
+run "nat_egress_keeps_private_tasks" {
+  command = plan
+  variables {
+    task_egress = "nat"
+    image       = "ghcr.io/dispatchlabs-ai/dispatch@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+  assert {
+    condition     = length(aws_nat_gateway.this) == 1 && length(aws_eip.nat) == 1 && !output.task_assign_public_ip && output.task_subnet_ids == aws_subnet.private[*].id
+    error_message = "NAT alternative needs one NAT/EIP and private task subnet outputs."
+  }
+  assert {
+    condition     = alltrue([for service in aws_ecs_service.stable : !service.network_configuration[0].assign_public_ip]) && !jsondecode(local.role_public_files[0].launcher["launcher.json"]).driver.assignPublicIp
+    error_message = "NAT selection must disable public IPs for controllers and workers."
+  }
+}
+run "custom_public_api_keeps_private_control_alb" {
+  command = plan
+  variables {
+    internal_alb                     = false
+    launcher_internal_alb            = true
+    certificate_arn                  = "arn:aws:acm:us-east-1:123456789012:certificate/example"
+    backend_callback_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/callback"
+  }
+  assert {
+    condition     = !aws_lb.this[0].internal && length(aws_lb.launcher) == 1 && aws_lb.launcher[0].internal && !local.shared_private_alb && aws_lb_listener.backend_callback[0].port == 443
+    error_message = "A custom public API ALB must not absorb private control/callback listeners."
+  }
+}
+run "reject_unknown_task_egress" {
+  command = plan
+  variables { task_egress = "unknown" }
+  expect_failures = [var.task_egress]
 }
