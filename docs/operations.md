@@ -88,8 +88,12 @@ observable. The private `/internal/sleep` gate seals new work, inspects native
 foreground/background tasks and unsettled submissions, and retires only idle
 workers through existing launcher termination evidence. **`/internal/drain`
 cancels work and is not a safe idle gate.** `waitForIdle()` alone is insufficient.
-Only successful quiescence authorizes backend scale-down, confirmed captured-task
-`STOPPED`, then launcher scale-down/confirmation. Support callbacks stay open
+A successful gate is necessary but not sufficient: revalidate fresh controller
+counts and exact running identities after the gate and before each scale-down.
+Identity drift must refuse the operation, not let an older task's exit stand in
+for the current owner. Observe backend actual `STOPPED` with clean exit, then
+launcher actual termination/clean exit; counts or missing inventory alone are not
+confirmation. Support callbacks stay open
 while admitted work finishes. Planned-quiescence health may remain green while
 new-work admission is sealed; it does not mean idle or publicly serving. Persisted cold drain does not
 authorize planned-quiescence readiness; lost ownership/unhealthy stores still fail
