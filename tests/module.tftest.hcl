@@ -125,6 +125,16 @@ run "foundation" {
     error_message = "Persistent database must be protected and encrypted."
   }
 }
+run "cloud_map_custom_health_is_explicit" {
+  command = plan
+  assert {
+    condition = alltrue([
+      for service in aws_service_discovery_service.stable :
+      length(service.health_check_custom_config) == 1 && service.health_check_custom_config[0].failure_threshold == 1
+    ])
+    error_message = "Both controller discovery services need an explicit custom health threshold; an empty block is omitted at creation and causes replacement drift."
+  }
+}
 run "public_images" {
   command = plan
   variables {

@@ -137,7 +137,11 @@ resource "aws_service_discovery_service" "stable" {
       type = "A"
     }
   }
-  health_check_custom_config {}
+  # An empty block is omitted by the provider's create request, causing
+  # perpetual replacement drift when refreshed. ECS manages custom health.
+  health_check_custom_config {
+    failure_threshold = 1
+  }
   tags = local.tags
 }
 resource "aws_ecs_service" "stable" {
