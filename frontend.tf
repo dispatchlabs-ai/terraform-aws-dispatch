@@ -43,18 +43,16 @@ resource "aws_cloudfront_function" "spa" {
   name    = "${var.name}-spa"
   runtime = "cloudfront-js-2.0"
   publish = true
-  code    = <<-JS
-  function handler(event) {
-    var request = event.request;
-    if (request.uri === '/internal' || request.uri.indexOf('/internal/') === 0) {
-      return { statusCode: 404, statusDescription: 'Not Found' };
-    }
-    if (request.uri === '/' || request.uri.endsWith('/') || !request.uri.split('/').pop().includes('.')) {
-      request.uri = '/index.html';
-    }
-    return request;
-  }
-  JS
+  code    = file("${path.module}/templates/spa-rewrite.js")
+}
+# Callback HTML reads the viewer URL then POSTs its response in JSON.
+# Drop authorization-code queries before they can reach ALB access logs.
+resource "aws_cloudfront_function" "api_request" {
+  count   = local.managed_domain ? 1 : 0
+  name    = "${var.name}-api-request"
+  runtime = "cloudfront-js-2.0"
+  publish = true
+  code    = file("${path.module}/templates/api-request.js")
 }
 resource "aws_cloudfront_vpc_origin" "backend" {
   count = local.managed_domain ? 1 : 0
@@ -165,6 +163,10 @@ resource "aws_cloudfront_distribution" "frontend" {
       cache_policy_id          = aws_cloudfront_cache_policy.api[0].id
       origin_request_policy_id = aws_cloudfront_origin_request_policy.api[0].id
       compress                 = false
+      function_association {
+        event_type   = "viewer-request"
+        function_arn = aws_cloudfront_function.api_request[0].arn
+      }
     }
   }
   restrictions {
