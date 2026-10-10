@@ -5,8 +5,10 @@ TERRAFORM ?= terraform
 check: check-tofu check-terraform
 	python3 scripts/test_select_artifacts.py
 	python3 scripts/test_run_operator.py
+	python3 scripts/test_run_installation.py
 	python3 scripts/test_publish_frontend.py
 	node --check templates/activate.cjs
+	node scripts/test_operator_request.cjs
 	node scripts/test_edge_functions.cjs
 
 validation-caller:

@@ -15,6 +15,7 @@ OPERATIONS = {
     "database-create": ("database_initializer", "database-init"),
     "database-verify": ("database_initializer", "database-init"),
     "activate": ("activation", "activation"),
+    "sleep": ("sleep", "sleep"),
 }
 
 

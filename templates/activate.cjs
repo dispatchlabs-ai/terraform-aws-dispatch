@@ -1,33 +1,73 @@
-// A deliberate single request. A timeout is an uncertain result, never a retry.
+// Poll only read-only owner status, then send exactly one authenticated mutation.
+// POST timeout/failure is uncertain; never retry it or print response/token data.
 const https = require('node:https');
 const token = process.env.DISPATCH_OPERATOR_TOKEN?.trim();
 const ca = process.env.DISPATCH_BACKEND_CA;
 const origin = process.env.DISPATCH_BACKEND_ORIGIN;
+const action = process.env.DISPATCH_OPERATOR_ACTION ?? 'activate';
 delete process.env.DISPATCH_OPERATOR_TOKEN;
 delete process.env.DISPATCH_BACKEND_CA;
-if (!token || !ca || !origin) {
-  console.error('Activation configuration missing');
+if (!token || !ca || !origin || !['activate', 'sleep'].includes(action)) {
+  console.error('Operator configuration missing');
   process.exit(1);
 }
-try {
-const request = https.request(new URL('/internal/undrain', origin), {
-  method: 'POST', ca, rejectUnauthorized: true,
-  headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-}, response => {
-  response.resume();
-  response.on('end', () => {
-    if (response.statusCode !== 200) {
-      console.error('Activation refused');
-      process.exitCode = 1;
-    } else console.log('Activation acknowledged');
+const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+const options = { ca, rejectUnauthorized: true, headers };
+function submitOnce() {
+  let valid = false;
+  const request = https.request(new URL(action === 'sleep' ? '/internal/sleep' : '/internal/undrain', origin), {
+    ...options, method: 'POST'
+  }, response => {
+    let body = '';
+    response.on('data', chunk => {
+      if (action === 'sleep') {
+        body += chunk.toString('utf8');
+        if (body.length > 1024) request.destroy(new Error('response limit'));
+      }
+    });
+    response.on('end', () => {
+      valid = response.statusCode === 200;
+      if (valid && action === 'sleep') {
+        try { valid = JSON.parse(body).quiesced === true; }
+        catch { valid = false; }
+      }
+      console.log(valid ? 'Operator request acknowledged' : 'Operator request refused or unresolved');
+      if (!valid) process.exitCode = 1;
+    });
+    response.on('error', () => { console.error('Operator result uncertain'); process.exitCode = 1; });
   });
-  response.on('error', () => { console.error('Activation result uncertain'); process.exitCode = 1; });
-});
-const deadline = setTimeout(() => request.destroy(new Error('deadline')), 360000);
-request.on('close', () => clearTimeout(deadline));
-request.on('error', () => { console.error('Activation result uncertain'); process.exitCode = 1; });
-request.end('{}');
+  const deadline = setTimeout(() => request.destroy(new Error('deadline')), 360000);
+  request.on('close', () => clearTimeout(deadline));
+  request.on('error', () => { console.error('Operator result uncertain'); process.exitCode = 1; });
+  request.end('{}');
+}
+// RUNNING and /internal/health do not prove the backend owner is initialized.
+// Read-only authenticated status does. Aurora/task wake may take minutes.
+function waitForOwner(deadline) {
+  let settled = false;
+  const finish = ready => {
+    if (settled) return;
+    settled = true;
+    if (ready) submitOnce();
+    else if (Date.now() >= deadline) {
+      console.error('Owner readiness not observed; no POST sent');
+      process.exitCode = 1;
+    } else setTimeout(() => waitForOwner(deadline), 5000);
+  };
+  const request = https.request(new URL('/internal/status', origin), { ...options, method: 'GET' }, response => {
+    response.resume();
+    response.on('end', () => finish(response.statusCode === 200));
+    response.on('error', () => finish(false));
+  });
+  const timeout = setTimeout(() => request.destroy(new Error('read deadline')), 5000);
+  request.on('close', () => clearTimeout(timeout));
+  request.on('error', () => finish(false));
+  request.end();
+}
+try {
+  if (action === 'activate') waitForOwner(Date.now() + 360000);
+  else submitOnce();
 } catch {
-  console.error('Activation configuration refused');
+  console.error('Operator configuration refused');
   process.exitCode = 1;
 }
