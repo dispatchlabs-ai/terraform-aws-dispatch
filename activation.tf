@@ -102,5 +102,5 @@ output "activation" {
     task_definition_arn = aws_ecs_task_definition.activation[0].arn
     security_group_id   = aws_security_group.activation[0].id
   } : null
-  description = "Unscheduled one-shot activation task. Use service_cluster_arn/private_subnet_ids. Never automatically retry an uncertain result."
+  description = "Unscheduled one-shot activation task. Use service_cluster_arn, task_subnet_ids and task_assign_public_ip. Never automatically retry an uncertain result."
 }

@@ -23,7 +23,7 @@ output "database_initializer" {
     execution_role_arn  = aws_iam_role.database_initializer_execution[0].arn
     task_role_arn       = aws_iam_role.database_initializer_task[0].arn
   } : null
-  description = "Operator-only RunTask inputs, using service_cluster_arn/private_subnet_ids and no public IP. Not scheduled by Terraform."
+  description = "Operator-only RunTask inputs; use credential_maintenance.cluster_arn, task_subnet_ids and task_assign_public_ip. Not scheduled by Terraform."
 }
 
 output "backend_callback_hostname" {
