@@ -7,7 +7,7 @@ resource "aws_lb" "launcher" {
   load_balancer_type         = "application"
   security_groups            = [aws_security_group.tasks["launcher_alb"].id]
   subnets                    = aws_subnet.private[*].id
-  idle_timeout               = 400
+  idle_timeout               = var.idle_timeout_seconds
   drop_invalid_header_fields = true
   tags                       = local.tags
 }
@@ -18,7 +18,7 @@ resource "aws_lb_target_group" "launcher" {
   protocol             = "HTTP"
   target_type          = "ip"
   vpc_id               = aws_vpc.this.id
-  deregistration_delay = 360
+  deregistration_delay = var.deregistration_delay_seconds
   health_check {
     path     = "/internal/ready"
     protocol = "HTTP"

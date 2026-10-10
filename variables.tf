@@ -173,3 +173,31 @@ variable "backend_callback_certificate_arn" {
     error_message = "Backend callback ingress reuses the private ALB; enable launcher_internal_alb."
   }
 }
+
+variable "deregistration_delay_seconds" {
+  description = "ALB request-drain allowance. Short values permit interrupted requests; they do not bypass controller ownership."
+  type        = number
+  default     = 30
+  validation {
+    condition     = var.deregistration_delay_seconds >= 0 && var.deregistration_delay_seconds <= 3600 && floor(var.deregistration_delay_seconds) == var.deregistration_delay_seconds
+    error_message = "Use an integer from 0 to 3600 seconds."
+  }
+}
+variable "idle_timeout_seconds" {
+  description = "ALB idle connection timeout, independent of application request bounds and task stop allowance."
+  type        = number
+  default     = 300
+  validation {
+    condition     = var.idle_timeout_seconds >= 1 && var.idle_timeout_seconds <= 4000 && floor(var.idle_timeout_seconds) == var.idle_timeout_seconds
+    error_message = "Use an integer from 1 to 4000 seconds."
+  }
+}
+variable "image_pull_repository_arns" {
+  description = "Additional exact private ECR repository ARNs authorized for image pulls. Public GHCR pulls need no ECR grant."
+  type        = set(string)
+  default     = []
+  validation {
+    condition     = alltrue([for arn in var.image_pull_repository_arns : can(regex("^arn:[a-z-]+:ecr:[a-z0-9-]+:[0-9]{12}:repository/[^*?]+$", arn))])
+    error_message = "Supply exact ECR repository ARNs, never wildcards."
+  }
+}

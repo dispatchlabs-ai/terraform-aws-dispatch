@@ -53,11 +53,14 @@ resource "aws_iam_role" "credential_maintenance_execution" {
 resource "aws_iam_role_policy" "credential_maintenance_execution" {
   count = local.credential_maintenance_enabled ? 1 : 0
   role  = aws_iam_role.credential_maintenance_execution[0].id
-  policy = jsonencode({ Version = "2012-10-17", Statement = [
+  policy = jsonencode({ Version = "2012-10-17", Statement = concat([
     { Effect = "Allow", Action = ["ecr:GetAuthorizationToken"], Resource = "*" },
-    { Effect = "Allow", Action = ["ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage"], Resource = aws_ecr_repository.this.arn },
+    { Effect = "Allow", Action = ["ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage"], Resource = concat([aws_ecr_repository.this.arn], tolist(var.image_pull_repository_arns)) },
     { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = distinct(values(var.credential_maintenance.secrets)) }
-  ] })
+    ], length(var.secret_kms_key_arns) == 0 ? [] : [{
+      Effect    = "Allow", Action = ["kms:Decrypt"], Resource = tolist(var.secret_kms_key_arns),
+      Condition = { StringEquals = { "kms:ViaService" = "secretsmanager.${data.aws_region.current.region}.amazonaws.com" } }
+  }]) })
 }
 resource "aws_iam_role" "credential_maintenance" {
   count              = local.credential_maintenance_enabled ? 1 : 0
@@ -115,4 +118,21 @@ output "credential_maintenance" {
     task_definition_arn = aws_ecs_task_definition.credential_maintenance[0].arn
     security_group_id   = aws_security_group.credential_maintenance[0].id
   } : null
+}
+
+resource "aws_vpc_security_group_egress_rule" "credential_maintenance_activation" {
+  count                        = local.credential_maintenance_enabled ? 1 : 0
+  security_group_id            = aws_security_group.credential_maintenance[0].id
+  referenced_security_group_id = aws_security_group.tasks["backend"].id
+  ip_protocol                  = "tcp"
+  from_port                    = 3001
+  to_port                      = 3001
+}
+resource "aws_vpc_security_group_ingress_rule" "credential_maintenance_activation" {
+  count                        = local.credential_maintenance_enabled ? 1 : 0
+  security_group_id            = aws_security_group.tasks["backend"].id
+  referenced_security_group_id = aws_security_group.credential_maintenance[0].id
+  ip_protocol                  = "tcp"
+  from_port                    = 3001
+  to_port                      = 3001
 }

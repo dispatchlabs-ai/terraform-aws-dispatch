@@ -132,7 +132,7 @@ resource "aws_service_discovery_service" "stable" {
       type = "A"
     }
   }
-  health_check_custom_config { failure_threshold = 1 }
+  health_check_custom_config {}
   tags = local.tags
 }
 resource "aws_ecs_service" "stable" {
@@ -191,7 +191,7 @@ resource "aws_lb" "this" {
   load_balancer_type         = "application"
   security_groups            = [aws_security_group.tasks["alb"].id]
   subnets                    = var.internal_alb ? aws_subnet.private[*].id : aws_subnet.public[*].id
-  idle_timeout               = lookup(var.service_deployment_mode, "backend", "stop-first") == "rolling" ? 400 : 300
+  idle_timeout               = var.idle_timeout_seconds
   drop_invalid_header_fields = true
   tags                       = local.tags
 }
@@ -202,7 +202,7 @@ resource "aws_lb_target_group" "backend" {
   protocol             = "HTTPS"
   target_type          = "ip"
   vpc_id               = aws_vpc.this.id
-  deregistration_delay = lookup(var.service_deployment_mode, "backend", "stop-first") == "rolling" ? 360 : 30
+  deregistration_delay = var.deregistration_delay_seconds
   health_check {
     path     = lookup(var.service_deployment_mode, "backend", "stop-first") == "rolling" ? "/internal/ready" : var.backend_health_check_path
     protocol = "HTTPS"

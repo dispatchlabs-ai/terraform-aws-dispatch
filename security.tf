@@ -98,7 +98,7 @@ resource "aws_iam_role_policy" "execution" {
   role     = each.value.id
   policy = jsonencode({ Version = "2012-10-17", Statement = concat([
     { Effect = "Allow", Action = ["ecr:GetAuthorizationToken"], Resource = "*" },
-    { Effect = "Allow", Action = ["ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage"], Resource = aws_ecr_repository.this.arn },
+    { Effect = "Allow", Action = ["ecr:BatchCheckLayerAvailability", "ecr:GetDownloadUrlForLayer", "ecr:BatchGetImage"], Resource = concat([aws_ecr_repository.this.arn], tolist(var.image_pull_repository_arns)) },
     { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = "${aws_cloudwatch_log_group.this[each.key].arn}:*" }
     ], each.key == "worker" ? [] : (length(var.services[each.key].secrets) == 0 ? [] : [
       { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = distinct(values(var.services[each.key].secrets)) }
