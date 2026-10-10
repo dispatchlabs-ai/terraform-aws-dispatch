@@ -4,7 +4,8 @@
 
 Start with the [dated regional estimate](../releases/cost-estimate.md): roughly
 **$166/month before workers/inference** for its stated modest-traffic ARM64
-scenario, not a quote or spend ceiling. Small RDS reduces that scenario by about
+scenario, not a quote or spend ceiling. This is a cost-conscious baseline, not
+a demonstrated cost optimum. Small RDS reduces that scenario by about
 $20/month but removes automatic compute scaling. Review actual regional prices
 and the saved caller plan. RDS, NAT/EIP, public and
 private ALBs, running controller/worker tasks, logs, S3 and image storage can incur
@@ -96,7 +97,11 @@ sampled tracing. These are source features, not live AWS or zero-downtime proof.
   Region/version availability, real connection loss and cost need qualification;
   retained owner connections prevent assuming an auto-pausing idle workload.
 - Controllers stay On-Demand. `worker_capacity_provider = "FARGATE_SPOT"` opts
-  workers into Spot; the default is `"FARGATE"`. Spot workers can lose capacity or be interrupted;
+  workers into Spot; the default is `"FARGATE"`. **Automatic idle retirement is not
+  implemented:** a started worker can remain billable between turns. The estimate's
+  300 worker-hours is an assumed workload, not an enforced limit; count actual
+  running-task hours, not just model/tool activity. Spot workers can lose capacity
+  or be interrupted;
   confirmed termination still precedes replacement. Durable history is not a
   workspace snapshot or exactly-once external-effects guarantee. No EFS or S3
   Files filesystem is added without an actual durability requirement.
