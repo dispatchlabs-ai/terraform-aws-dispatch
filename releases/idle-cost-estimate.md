@@ -1,10 +1,11 @@
-# Idle and active cost comparison — October 10, 2026
+# Idle and active cost comparison — October 14, 2026
 
 **Planning estimates, not measured bills or verified sleep/wake behavior.** USD,
 us-east-1, 730 hours/month, ARM64, public On-Demand rates; no free tiers or credits.
-Rate sources and general exclusions are in the [baseline estimate](cost-estimate.md#rate-evidence-and-reproduction).
+Rates were rechecked on October 14, 2026; rate sources and general exclusions are
+in the [current baseline estimate](cost-estimate.md#rate-evidence-and-reproduction).
 
-The **provisional** low-idle design retains one private ALB for managed-domain CloudFront ingress
+The current managed-domain network retains one private ALB for CloudFront ingress
 and private control/callback listeners. Tasks use public IPv4 for outbound access,
 with ingress restricted by security-group references; the database remains private.
 No NAT gateway, additional wake service or RDS Proxy is assumed. The selected wake
@@ -28,16 +29,25 @@ baseline. The retained ALB does not incur public IPv4 charges.
 | Hosted zones | 3 × $0.50/month | $1.50 |
 | **Fixed/assumed-storage subtotal** | Sum before display rounding | **$26.73** |
 
-S3 storage, retained logs/backups, Cloud Map API calls, ALB LCU usage, requests,
-maintenance wakes and operator-task time are additional. For example, 5 GB of
-S3 Standard objects adds about $0.12/month before requests. Storage grows with
+S3/ECR storage, retained logs/backups, Cloud Map resource registrations and API
+calls, ALB LCU usage, requests, maintenance wakes and operator-task time are
+additional. For example, 5 GB of S3 Standard objects adds about $0.12/month before
+requests. Storage grows with
 retained data and assets. This is not a $27 bill guarantee or a zero-cost service.
 
-For comparison, keeping the old two-ALB/NAT network while stopping all tasks and
-pausing Aurora leaves **$79.65/month** fixed/assumed-storage. Keeping controllers
-and the database awake on the new single-ALB/public-IP network instead costs
-**$111.86/month**, before workers and usage, assuming Aurora remains at 0.5 ACU.
-Browser inactivity alone does not stop tasks or establish eligibility for sleep.
+**This is an opt-in sleep scenario, not the default idle bill.** With all tasks
+stopped but the default `aurora_min_capacity = 0.5` unchanged, the same full
+installation still costs **$70.53/month** before usage ($26.725 retained resources
++ $43.80 database compute). Keeping controllers and the database awake instead
+costs **$111.86/month**, before workers and usage, assuming Aurora remains at
+0.5 ACU. Browser inactivity alone does not stop tasks or establish eligibility
+for sleep. A foundation-only deployment without the full application's secrets
+and managed-domain resources has different retained-resource costs.
+
+For comparison, stopping tasks and pausing Aurora with the current shared-ALB
+network but optional NAT/EIP retained leaves **$63.23/month** before usage.
+The historical two-private-ALB/NAT assumption leaves **$79.65/month**; it is not a
+selectable current managed-domain profile.
 
 ### Installation floor versus conversation cost
 
@@ -72,10 +82,13 @@ sizes must be added separately. Database ACU-hours include warm-up, the final
 connection-free auto-pause interval and maintenance; they are not necessarily
 equal to active application hours. Controllers remain On-Demand.
 
-The following simplified duty cycles assume both controllers run for the stated
+The following simplified duty cycles require **`aurora_min_capacity = 0`** and
+explicit operator sleep/wake. They assume both controllers run for the stated
 hours, Aurora runs for the same hours at the stated average capacity, and all
 compute sleeps otherwise. They exclude the extra intervals and usage just listed;
 worker-hours are workload assumptions, **not an enforced retirement policy**.
+Controller task-hours in the formula are aggregated across both controllers
+(e.g. 176 hours awake means 352 controller task-hours).
 
 | Hours awake/month | Average ACUs while awake | Aggregate worker-hours | Subtotal |
 |---:|---:|---:|---:|
@@ -84,6 +97,11 @@ worker-hours are workload assumptions, **not an enforced retirement policy**.
 | 176 (22 × 8-hour days) | 0.5 | 300 | $55.74 |
 | 176 | 1 | 300 | $66.30 |
 | 730 | 0.5 | 730 | $132.52 |
+
+With the default nonzero Aurora minimum, the 176-hour/0.5-ACU/300-worker-hour
+scenario instead costs **$88.98/month** before usage: the database continues
+billing at 0.5 ACU for the other 554 hours. The [always-on estimate](cost-estimate.md)
+adds a concrete light-traffic allowance; do not treat these subtotals as final bills.
 
 For 300 worker-hours alone, On-Demand plus IPv4 is **$8.49**. Hypothetical 50%/70%
 Spot discounts on **compute only** produce **$5.00/$3.60**, respectively; the $1.50
@@ -107,7 +125,7 @@ not stop application tasks. Confirm the selected engine version's zero-ACU and
 regional Serverless support before applying.
 
 AWS's [auto-pause documentation](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/aurora-serverless-v2-auto-pause.html),
-reviewed October 10, 2026, establishes:
+reviewed October 14, 2026, establishes:
 
 - **Any open user connection prevents pause**, even without queries. Dispatch's
   ownership connections must close gracefully after work and admission are safely

@@ -2,12 +2,16 @@
 
 ## Costs and availability
 
-Use the [baseline estimate](../releases/cost-estimate.md) and
-[provisional idle/active comparison](../releases/idle-cost-estimate.md), their
-architecture, workload and duty-cycle assumptions—not a quote or spend ceiling. The earlier
-~$166/month scenario includes NAT/two ALBs and continuously running controllers;
-it is not the new profile's sleeping price. Small RDS removes Aurora's automatic
-compute scaling/auto-pause, even when cheaper for a continuously running workload.
+Use the [current baseline estimate](../releases/cost-estimate.md) and
+[conditional idle/active comparison](../releases/idle-cost-estimate.md), their
+architecture, workload and duty-cycle assumptions—not a quote or spend ceiling.
+Rates checked October 14, 2026 give a ~$112/month always-on subtotal before
+workers/usage, or roughly $120–$140 for light use, on the shared-private-ALB/public-IP
+network in us-east-1. Stopping all tasks still leaves ~$71/month with the default
+0.5-ACU minimum; the ~$27 sleeping subtotal requires eligible zero-ACU auto-pause.
+The earlier ~$166/month NAT/two-private-ALB scenario is a historical comparison,
+not the current default. Small RDS removes Aurora's automatic compute scaling/
+auto-pause, even when cheaper for a continuously running workload.
 
 `task_egress = "public-ip"` avoids permanent NAT costs; public IPv4 is billed only
 while each task runs. Security groups still restrict ingress and the managed-domain

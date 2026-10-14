@@ -25,7 +25,7 @@ Licensed under [MIT](LICENSE).
 - [Complete caller example](examples/complete/README.md)
 - [Installation and activation](docs/installation.md)
 - [Security and retention](docs/operations.md)
-- [Regional cost estimates](releases/cost-estimate.md) and [provisional idle/active comparison](releases/idle-cost-estimate.md)
+- [Monthly AWS cost estimate](releases/cost-estimate.md) and [conditional idle/active comparison](releases/idle-cost-estimate.md)
 - [Changelog](CHANGELOG.md) and [release and acceptance contract](docs/releases.md)
 
 You supply the AWS provider/region and restricted state backend, final HTTPS
@@ -47,6 +47,37 @@ After registration in each registry, the intended module address is
 resolve that shorthand through their respective default registries; registration
 in one does not register the other. See the [v0.1.0 source checks](docs/releases.md#v010-source-release)
 for tested engine/provider versions and qualification limits.
+
+## Estimated monthly cost
+
+Rates checked **October 14, 2026**. For one activated managed-domain installation
+in **us-east-1**, using ARM64, one shared private ALB, public-IP task egress
+(no NAT), and Aurora averaging 0.5 ACU:
+
+| Scenario | Monthly USD, before usage/model API charges |
+|---|---:|
+| Always-on backend + launcher, no workers | ~$112 |
+| Same, plus 300 aggregate worker-hours | ~$120 |
+| Same, plus one continuously running worker | ~$133 |
+| All tasks stopped, default 0.5-ACU database retained | ~$71 |
+| All tasks stopped, Aurora successfully auto-paused (opt-in) | ~$27 |
+
+**Budget roughly $120–$140/month for light always-on AWS usage**, excluding LLM
+and tool API bills. These estimates assume 730 hours/month, 20 GB of database data,
+17 secrets and three allocated hosted zones, with no free tiers or discounts.
+Workers cost about **$0.02831/running hour**, including IPv4. Aurora scaling,
+logging, storage and traffic can increase the bill. The small single-AZ RDS
+alternative lowers the always-on/no-worker subtotal to about **$92/month**.
+
+Sleeping is not the default: `aurora_min_capacity = 0` and all database connections
+closed are required for auto-pause, with supported engine/region settings. Sleep
+requires explicit operator action, incurs wake latency, and remains unqualified
+on live AWS. The module initially defaults to zero controllers; retained
+infrastructure still costs money.
+
+See the [detailed cost breakdown, assumptions and AWS rate sources](releases/cost-estimate.md)
+and [idle/active duty cycles and sleep/wake caveats](releases/idle-cost-estimate.md).
+These are planning estimates, not measured bills or spend ceilings.
 
 ## Ownership
 
