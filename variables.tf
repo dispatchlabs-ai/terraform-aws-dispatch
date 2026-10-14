@@ -71,6 +71,11 @@ variable "worker_cpu" {
   type        = string
   default     = "512"
 }
+variable "worker_warm_spare" {
+  description = "Keep one unassigned Fargate worker ready and replenish it after assignment. Requires warm-spare-capable Dispatch images; adds one running worker's cost. Drain/sleep suspend the spare."
+  type        = bool
+  default     = false
+}
 variable "worker_memory" {
   description = "Fargate memory in MiB for new conversation workers, paired with worker_cpu."
   type        = string

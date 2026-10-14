@@ -62,7 +62,7 @@ locals {
         workerKeyFile  = "${local.bootstrap_directory}/worker-token"
         backendCaFile  = "${local.bootstrap_directory}/callback-ca.pem"
         host           = "0.0.0.0", port = 8830, driverType = "ecs"
-        driver = {
+        driver = merge({
           region                = data.aws_region.current.region
           cluster               = aws_ecs_cluster.workers.arn
           taskDefinition        = try(aws_ecs_task_definition.worker[0].arn, null)
@@ -74,7 +74,7 @@ locals {
           platformVersion       = "1.4.0"
           capacityProvider      = var.worker_capacity_provider
           environment           = { DISPATCH_BACKEND_INTERNAL_URL = local.generated_callback_url }
-        }
+        }, var.worker_warm_spare ? { warmSpare = true } : {})
       })
       }, local.controller_deployment_mode.launcher == "rolling" ? {
       "controller-database.json" = jsonencode({

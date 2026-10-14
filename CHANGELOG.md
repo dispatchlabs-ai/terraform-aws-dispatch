@@ -7,6 +7,10 @@ are immutable; corrections ship in a new version.
 
 ## [Unreleased]
 
+- Add opt-in `worker_warm_spare` for one launcher-managed unassigned Fargate
+  worker, with private launcher-to-worker assignment access. Requires compatible
+  Dispatch images; the default keeps ordinary on-demand launching.
+
 ## [0.1.0] - 2026-10-14
 
 Initial early-stage source release. **Live AWS qualification remains pending.**

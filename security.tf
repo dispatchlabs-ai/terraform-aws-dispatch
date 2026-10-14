@@ -20,6 +20,7 @@ locals {
     launcher_backend = { from = "launcher", to = "backend", port = 3001 }
     backend_launcher = { from = "backend", to = "launcher", port = 8830 }
     backend_worker   = { from = "backend", to = "worker", port = 8831 }
+    launcher_worker  = { from = "launcher", to = "worker", port = 8831 }
     }, {
     for role, mode in local.controller_deployment_mode : "${role}_peer" => {
       from = role, to = role, port = role == "backend" ? 3001 : 8830

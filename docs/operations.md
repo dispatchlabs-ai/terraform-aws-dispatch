@@ -62,6 +62,30 @@ its replacement adopts the new image. StopTask acknowledgement, missing inventor
 expired leases and lost connections are not termination proof. Reconcile the same
 immutable attempt after uncertainty; never silently allocate another one.
 
+## Optional warm spare
+
+Set `worker_warm_spare = true` with warm-spare-capable Dispatch controller and
+worker images to keep one unassigned task ready for the next chat. The launcher
+binds it once to a conversation attempt and replenishes capacity. A burst before
+the replacement is ready uses ordinary cold launches; this is a target, not an
+availability guarantee. Existing conversation tasks are not recycled or moved.
+The spare uses the configured worker CPU, memory, architecture and image and adds
+one worker's running compute/network cost. See the hourly worker estimate above.
+
+The module permits private launcher-to-worker TCP 8831 for authenticated
+assignment and reconciliation, including tasks previously assigned while the
+option was enabled. Workers receive no new AWS permissions. Physical ECS tags
+retain the spare's original identity; the launcher journal records its assigned
+conversation/attempt. Use launcher status for that mapping, not task tags alone.
+
+Drain and planned sleep retire spare capacity and suspend replenishment. Explicit
+wake resumes it. Disabling the option retires the unassigned spare while retaining
+already assigned workers. Keep compatible images while any warm-assignment
+journal records remain; an older launcher cannot interpret those records. Do not
+erase the journal to downgrade. Record actual claim/replenishment and startup
+latency observations for each installation; module validation is not runtime
+qualification.
+
 ## Operator sleep and wake
 
 **Source tooling, not verified AWS sleep/wake.** The low-idle inputs do not
