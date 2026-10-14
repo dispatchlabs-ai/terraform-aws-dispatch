@@ -10,8 +10,8 @@ Dispatch's launcher creates and retires conversation tasks. The low-idle profile
 avoids permanent NAT, shares private managed ingress, and supports conditional
 zero-ACU Aurora plus explicit operator sleep/wake; no automatic idle timer is added.
 
-**Status:** source baseline implemented and offline-reviewed; live qualification pending. This
-repository is public. Dispatch [0.2.0 archives](https://github.com/dispatchlabs-ai/dispatch/releases/tag/v0.2.0)
+**Status:** module **v0.1.0** is an early-stage source release; live AWS qualification
+remains pending. This repository is public. Dispatch [0.2.0 archives](https://github.com/dispatchlabs-ai/dispatch/releases/tag/v0.2.0)
 are available; [import them into ECR without rebuilding](docs/releases.md#import-020-archives-into-ecr).
 Public registry images, module registry registration and an independently
 qualified fresh-account installation remain pending. Do not use sample identities
@@ -26,7 +26,7 @@ Licensed under [MIT](LICENSE).
 - [Installation and activation](docs/installation.md)
 - [Security and retention](docs/operations.md)
 - [Regional cost estimates](releases/cost-estimate.md) and [provisional idle/active comparison](releases/idle-cost-estimate.md)
-- [Release and acceptance contract](docs/releases.md)
+- [Changelog](CHANGELOG.md) and [release and acceptance contract](docs/releases.md)
 
 You supply the AWS provider/region and restricted state backend, final HTTPS
 domain/Route 53 zone, regional AWS and `aws.edge` (`us-east-1`) providers, trusted
@@ -35,9 +35,18 @@ digests plus a verified SPA release bundle. The module renders internal service/
 bootstrap configuration. No application checkout, Nix build or customer-specific
 runbook should be needed by a release consumer.
 
-Pin the module to an immutable release or commit. Public Git source can be pinned
-to a full commit; no Terraform/OpenTofu registry version is advertised yet. Engine and provider compatibility must be verified
-for each release.
+Pin the module to an immutable release or full commit. Until registry registration
+is complete, use the `v0.1.0` Git release in your caller's module block:
+
+```hcl
+source = "git::https://github.com/dispatchlabs-ai/terraform-aws-dispatch.git?ref=v0.1.0"
+```
+
+After registration in each registry, the intended module address is
+`dispatchlabs-ai/dispatch/aws` with `version = "0.1.0"`. Terraform and OpenTofu
+resolve that shorthand through their respective default registries; registration
+in one does not register the other. See the [v0.1.0 source checks](docs/releases.md#v010-source-release)
+for tested engine/provider versions and qualification limits.
 
 ## Ownership
 
