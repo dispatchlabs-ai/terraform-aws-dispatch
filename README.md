@@ -21,6 +21,7 @@ Licensed under [MIT](LICENSE).
 
 ## Start here
 
+- [Architecture explained and AWS diagram](docs/architecture.md)
 - [Complete caller example](examples/complete/README.md)
 - [Installation and activation](docs/installation.md)
 - [Security and retention](docs/operations.md)

@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1408" height="1154" viewBox="0 0 1408 1154" role="img" aria-labelledby="title description">
+<title id="title">Dispatch on AWS: managed-domain architecture</title>
+<desc id="description">Users reach CloudFront. Static content is served from private S3 with OAC. API traffic enters a private ALB through a CloudFront VPC origin and reaches the backend. The backend and launcher are Fargate services in public subnets with restricted ingress. The launcher creates per-conversation Fargate workers in a separate cluster. Controllers and workers connect to private Aurora PostgreSQL; the backend stores artifacts in versioned S3. Default egress uses public task IPv4 rather than a NAT gateway. Private control, callbacks and operator flows are omitted.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 Z" fill="#526276"/></marker>
+<marker id="control-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 Z" fill="#B86212"/></marker></defs>
+<rect width="100%" height="100%" fill="#FFFFFF"/>
+<rect x="48" y="352" width="1310" height="520" rx="16" fill="#F7F9FC" stroke="#9CB0C6" stroke-width="1.5"/>
+<rect x="445" y="423" width="880" height="260" rx="12" fill="#FFF7ED" stroke="#E6C7A0" stroke-width="1.5"/>
+<polyline points="305,221 475,221" fill="none" stroke="#526276" stroke-width="2.3" stroke-linejoin="round"/>
+<polygon points="475,221 462.0,227.0 462.0,215.0" fill="#526276"/>
+<polyline points="785,221 985,221" fill="none" stroke="#526276" stroke-width="2.3" stroke-linejoin="round"/>
+<polygon points="985,221 972.0,227.0 972.0,215.0" fill="#526276"/>
+<polyline points="630,286 630,325 230,325 230,480" fill="none" stroke="#526276" stroke-width="2.3" stroke-linejoin="round"/>
+<polygon points="230,480 224.0,467.0 236.0,467.0" fill="#526276"/>
+<polyline points="370,560 475,560" fill="none" stroke="#526276" stroke-width="2.3" stroke-linejoin="round"/>
+<polygon points="475,560 462.0,566.0 462.0,554.0" fill="#526276"/>
+<polyline points="785,560 985,560" fill="none" stroke="#B86212" stroke-width="2.3" stroke-linejoin="round" stroke-dasharray="9 6"/>
+<polygon points="985,560 972.0,566.0 972.0,554.0" fill="#B86212"/>
+<polyline points="1140,645 1140,718" fill="none" stroke="#526276" stroke-width="2.3" stroke-linejoin="round"/>
+<polygon points="1140,718 1134.0,705.0 1146.0,705.0" fill="#526276"/>
+<polyline points="785,602 875,602 875,784 985,784" fill="none" stroke="#526276" stroke-width="2.3" stroke-linejoin="round"/>
+<polygon points="985,784 972.0,790.0 972.0,778.0" fill="#526276"/>
+<polyline points="630,645 630,940" fill="none" stroke="#526276" stroke-width="2.3" stroke-linejoin="round"/>
+<polygon points="630,940 624.0,927.0 636.0,927.0" fill="#526276"/>
+<text x="48" y="72" font-family="DejaVu Sans, sans-serif" font-size="36" font-weight="700" fill="#172B40" text-anchor="start">Dispatch on AWS</text>
+<text x="48" y="112" font-family="DejaVu Sans, sans-serif" font-size="21" font-weight="400" fill="#526276" text-anchor="start">A small control plane, with an ECS Fargate worker for each conversation.</text>
+<rect x="90" y="156" width="215" height="130" rx="10" fill="#FFFFFF" stroke="#172B40" stroke-width="2"/>
+<text x="108" y="187" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="700" fill="#172B40" text-anchor="start">CLIENT</text>
+<text x="108" y="226" font-family="DejaVu Sans, sans-serif" font-size="26" font-weight="700" fill="#111111" text-anchor="start">Users</text>
+<text x="108" y="260" font-family="DejaVu Sans, sans-serif" font-size="19" font-weight="400" fill="#111111" text-anchor="start">Browser / HTTPS</text>
+<rect x="475" y="156" width="310" height="130" rx="10" fill="#F7F2FF" stroke="#7042B4" stroke-width="2"/>
+<text x="493" y="208" font-family="DejaVu Sans, sans-serif" font-size="26" font-weight="700" fill="#111111" text-anchor="start">CloudFront</text>
+<text x="493" y="241" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">Public HTTPS entry point</text>
+<text x="493" y="265" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">Route 53 DNS + ACM TLS</text>
+<rect x="985" y="156" width="310" height="130" rx="10" fill="#F2FAF2" stroke="#317C3C" stroke-width="2"/>
+<text x="1003" y="208" font-family="DejaVu Sans, sans-serif" font-size="26" font-weight="700" fill="#111111" text-anchor="start">S3 frontend</text>
+<text x="1003" y="241" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">Private SPA + asset bucket</text>
+<text x="1003" y="265" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">Release-prefixed HTML</text>
+<text x="390.0" y="208" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#526276" text-anchor="middle">HTTPS</text>
+<text x="885.0" y="203" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#526276" text-anchor="middle">SPA + assets</text>
+<text x="885.0" y="256" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#526276" text-anchor="middle">Signed OAC reads</text>
+<text x="444.0" y="314" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#526276" text-anchor="middle">Uncached API / HTTPS VPC origin</text>
+<text x="430" y="386" font-family="DejaVu Sans, sans-serif" font-size="20" font-weight="700" fill="#172B40" text-anchor="start">DEDICATED VPC  /  TWO AVAILABILITY ZONES</text>
+<text x="430" y="414" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#526276" text-anchor="start">Default: public task IPv4 for egress; no NAT gateway. Inbound access is SG-restricted.</text>
+<text x="475" y="455" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="700" fill="#B86212" text-anchor="start">PUBLIC SUBNETS  /  FARGATE TASKS</text>
+<rect x="90" y="480" width="280" height="165" rx="10" fill="#F7F2FF" stroke="#7042B4" stroke-width="2"/>
+<text x="108" y="511" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="700" fill="#7042B4" text-anchor="start">ONE SHARED LOAD BALANCER</text>
+<text x="108" y="550" font-family="DejaVu Sans, sans-serif" font-size="26" font-weight="700" fill="#111111" text-anchor="start">Private ALB</text>
+<text x="108" y="583" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">443  ·  viewer API</text>
+<text x="108" y="607" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">8830  ·  launcher control</text>
+<text x="108" y="631" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">8443  ·  worker callbacks</text>
+<text x="230.0" y="672" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#526276" text-anchor="middle">Private subnets</text>
+<rect x="475" y="480" width="310" height="165" rx="10" fill="#FFFFFF" stroke="#B86212" stroke-width="2"/>
+<text x="493" y="511" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="700" fill="#B86212" text-anchor="start">AMAZON ECS / FARGATE</text>
+<text x="493" y="547" font-family="DejaVu Sans, sans-serif" font-size="23" font-weight="700" fill="#111111" text-anchor="start">Backend + launcher</text>
+<text x="493" y="580" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">Services cluster · On-Demand</text>
+<text x="493" y="604" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">One of each when active</text>
+<text x="493" y="628" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">0.5 vCPU / 2 GiB per task</text>
+<rect x="985" y="480" width="310" height="165" rx="10" fill="#FFFFFF" stroke="#B86212" stroke-width="2"/>
+<text x="1003" y="511" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="700" fill="#B86212" text-anchor="start">AMAZON ECS / FARGATE</text>
+<text x="1003" y="546" font-family="DejaVu Sans, sans-serif" font-size="22" font-weight="700" fill="#111111" text-anchor="start">Conversation workers</text>
+<text x="1003" y="579" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">Separate worker cluster</text>
+<text x="1003" y="603" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">Launched by the launcher</text>
+<text x="1003" y="627" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">On-Demand; Spot opt-in</text>
+<text x="422.5" y="540" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#526276" text-anchor="middle">HTTPS</text>
+<text x="422.5" y="589" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#526276" text-anchor="middle">3001</text>
+<text x="885.0" y="543" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#B86212" text-anchor="middle">Launch / retire</text>
+<rect x="985" y="718" width="310" height="132" rx="10" fill="#EFF6FD" stroke="#2869A8" stroke-width="2"/>
+<text x="1003" y="749" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="700" fill="#2869A8" text-anchor="start">MANAGED DATABASE</text>
+<text x="1003" y="785" font-family="DejaVu Sans, sans-serif" font-size="23" font-weight="700" fill="#111111" text-anchor="start">Aurora PostgreSQL</text>
+<text x="1003" y="818" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">Serverless v2 · single writer</text>
+<text x="1003" y="842" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">Private subnets · TLS 5432</text>
+<text x="1224.0" y="700" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#526276" text-anchor="middle">SQL / TLS</text>
+<text x="927.0" y="771" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#526276" text-anchor="middle">SQL / TLS</text>
+<rect x="90" y="718" width="310" height="132" rx="8" fill="#FFFFFF" stroke="#B9C3CE" stroke-width="1.5" stroke-dasharray="7 5"/>
+<text x="108" y="748" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="700" fill="#526276" text-anchor="start">SIMPLIFIED VIEW</text>
+<text x="108" y="781" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#526276" text-anchor="start">Private ALB control/callback</text>
+<text x="108" y="806" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#526276" text-anchor="start">connections and one-off</text>
+<text x="108" y="831" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#526276" text-anchor="start">operator tasks are not drawn.</text>
+<text x="90" y="915" font-family="DejaVu Sans, sans-serif" font-size="15" font-weight="700" fill="#526276" text-anchor="start">AWS SERVICES OUTSIDE THE VPC</text>
+<text x="650" y="914" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#526276" text-anchor="start">Backend artifact access</text>
+<rect x="90" y="940" width="310" height="125" rx="10" fill="#F5F7FA" stroke="#172B40" stroke-width="2"/>
+<text x="108" y="990" font-family="DejaVu Sans, sans-serif" font-size="24" font-weight="700" fill="#111111" text-anchor="start">Runtime inputs</text>
+<text x="108" y="1024" font-family="DejaVu Sans, sans-serif" font-size="19" font-weight="400" fill="#111111" text-anchor="start">ECR · Secrets Manager</text>
+<text x="108" y="1048" font-family="DejaVu Sans, sans-serif" font-size="19" font-weight="400" fill="#111111" text-anchor="start">Scoped IAM roles</text>
+<rect x="475" y="940" width="310" height="125" rx="10" fill="#F2FAF2" stroke="#317C3C" stroke-width="2"/>
+<text x="493" y="992" font-family="DejaVu Sans, sans-serif" font-size="26" font-weight="700" fill="#111111" text-anchor="start">S3 artifacts</text>
+<text x="493" y="1025" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">Versioned durable objects</text>
+<text x="493" y="1049" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">Backend task-role access</text>
+<rect x="985" y="940" width="310" height="125" rx="10" fill="#F5F7FA" stroke="#172B40" stroke-width="2"/>
+<text x="1003" y="990" font-family="DejaVu Sans, sans-serif" font-size="24" font-weight="700" fill="#111111" text-anchor="start">Observability</text>
+<text x="1003" y="1023" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">CloudWatch logs · X-Ray</text>
+<text x="1003" y="1047" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#111111" text-anchor="start">Private S3 ALB access logs</text>
+<text x="48" y="1107" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#526276" text-anchor="start">Solid arrows: application/data paths. Dashed arrow: ECS RunTask / StopTask. Connections simplified.</text>
+<text x="48" y="1137" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#526276" text-anchor="start">Managed-domain profile; defaults shown. Source-reviewed architecture, not evidence of a live AWS deployment.</text>
+</svg>

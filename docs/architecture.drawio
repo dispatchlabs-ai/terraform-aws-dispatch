@@ -1,0 +1,153 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" version="26.0.0" type="device">
+  <diagram id="dispatch-managed-aws" name="Dispatch on AWS">
+    <mxGraphModel dx="1408" dy="1154" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1408" pageHeight="1154" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="vpc" value="" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;rounded=1;arcSize=8;fillColor=#F7F9FC;strokeColor=#9CB0C6;" vertex="1" parent="1">
+          <mxGeometry x="48" y="352" width="1310" height="520" as="geometry" />
+        </mxCell>
+        <mxCell id="public-subnets" value="" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;rounded=1;arcSize=8;fillColor=#FFF7ED;strokeColor=#E6C7A0;" vertex="1" parent="1">
+          <mxGeometry x="445" y="423" width="880" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="users-to-cloudfront" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#526276;fontColor=#111111;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="browser" target="cloudfront">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cloudfront-to-s3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#526276;fontColor=#111111;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cloudfront" target="frontend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cloudfront-to-alb" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#526276;fontColor=#111111;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cloudfront" target="alb">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="630" y="325" />
+              <mxPoint x="230" y="325" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="alb-to-backend" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#526276;fontColor=#111111;labelBackgroundColor=#ffffff;exitX=1;exitY=0.48484848484848486;exitDx=0;exitDy=0;entryX=0;entryY=0.48484848484848486;entryDx=0;entryDy=0;" edge="1" parent="1" source="alb" target="controllers">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="launcher-to-workers" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#B86212;fontColor=#111111;labelBackgroundColor=#ffffff;dashed=1;dashPattern=9 6;exitX=1;exitY=0.48484848484848486;exitDx=0;exitDy=0;entryX=0;entryY=0.48484848484848486;entryDx=0;entryDy=0;" edge="1" parent="1" source="controllers" target="workers">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="workers-to-db" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#526276;fontColor=#111111;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="workers" target="database">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="controllers-to-db" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#526276;fontColor=#111111;labelBackgroundColor=#ffffff;exitX=1;exitY=0.7393939393939394;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="controllers" target="database">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="875" y="602" />
+              <mxPoint x="875" y="784" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="backend-to-artifacts" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#526276;fontColor=#111111;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="controllers" target="artifacts">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="Dispatch on AWS" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=0;fontSize=36;fontColor=#172B40;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="48" y="36" width="1280" height="52.199999999999996" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="A small control plane, with an ECS Fargate worker for each conversation." style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=0;fontSize=21;fontColor=#526276;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="48" y="91" width="1300" height="30.45" as="geometry" />
+        </mxCell>
+        <mxCell id="browser" value="&lt;div style=&quot;color:#111111;line-height:1.2&quot;&gt;&lt;div style=&quot;font-size:12px;font-weight:700;color:#172B40;margin-bottom:8px&quot;&gt;CLIENT&lt;/div&gt;&lt;div style=&quot;font-size:26px;font-weight:700;margin-bottom:10px&quot;&gt;Users&lt;/div&gt;&lt;div style=&quot;font-size:19px;line-height:24px&quot;&gt;Browser / HTTPS&lt;/div&gt;&lt;/div&gt;" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;rounded=1;arcSize=10;fillColor=#FFFFFF;strokeColor=#172B40;align=left;verticalAlign=top;spacingLeft=18;spacingRight=12;spacingTop=18;spacingBottom=12;" vertex="1" parent="1">
+          <mxGeometry x="90" y="156" width="215" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="cloudfront" value="&lt;div style=&quot;color:#111111;line-height:1.2&quot;&gt;&lt;div style=&quot;font-size:26px;font-weight:700;margin-bottom:10px&quot;&gt;CloudFront&lt;/div&gt;&lt;div style=&quot;font-size:18px;line-height:24px&quot;&gt;Public HTTPS entry point&lt;br&gt;Route 53 DNS + ACM TLS&lt;/div&gt;&lt;/div&gt;" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;rounded=1;arcSize=10;fillColor=#F7F2FF;strokeColor=#7042B4;align=left;verticalAlign=top;spacingLeft=18;spacingRight=12;spacingTop=18;spacingBottom=12;" vertex="1" parent="1">
+          <mxGeometry x="475" y="156" width="310" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="frontend" value="&lt;div style=&quot;color:#111111;line-height:1.2&quot;&gt;&lt;div style=&quot;font-size:26px;font-weight:700;margin-bottom:10px&quot;&gt;S3 frontend&lt;/div&gt;&lt;div style=&quot;font-size:18px;line-height:24px&quot;&gt;Private SPA + asset bucket&lt;br&gt;Release-prefixed HTML&lt;/div&gt;&lt;/div&gt;" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;rounded=1;arcSize=10;fillColor=#F2FAF2;strokeColor=#317C3C;align=left;verticalAlign=top;spacingLeft=18;spacingRight=12;spacingTop=18;spacingBottom=12;" vertex="1" parent="1">
+          <mxGeometry x="985" y="156" width="310" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="viewer-label" value="HTTPS" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=center;verticalAlign=top;spacing=0;fontSize=18;fontColor=#526276;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="315" y="190" width="150" height="26.099999999999998" as="geometry" />
+        </mxCell>
+        <mxCell id="static-label" value="SPA + assets" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=center;verticalAlign=top;spacing=0;fontSize=18;fontColor=#526276;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="790" y="185" width="190" height="26.099999999999998" as="geometry" />
+        </mxCell>
+        <mxCell id="oac-label" value="Signed OAC reads" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=center;verticalAlign=top;spacing=0;fontSize=17;fontColor=#526276;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="790" y="239" width="190" height="24.65" as="geometry" />
+        </mxCell>
+        <mxCell id="api-label" value="Uncached API / HTTPS VPC origin" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=center;verticalAlign=top;spacing=0;fontSize=18;fontColor=#526276;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="259" y="296" width="370" height="26.099999999999998" as="geometry" />
+        </mxCell>
+        <mxCell id="vpc-title" value="DEDICATED VPC  /  TWO AVAILABILITY ZONES" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=0;fontSize=20;fontColor=#172B40;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="366" width="880" height="29.0" as="geometry" />
+        </mxCell>
+        <mxCell id="vpc-subtitle" value="Default: public task IPv4 for egress; no NAT gateway. Inbound access is SG-restricted." style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=0;fontSize=17;fontColor=#526276;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="430" y="397" width="880" height="24.65" as="geometry" />
+        </mxCell>
+        <mxCell id="subnet-title" value="PUBLIC SUBNETS  /  FARGATE TASKS" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=0;fontSize=17;fontColor=#B86212;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="475" y="438" width="820" height="24.65" as="geometry" />
+        </mxCell>
+        <mxCell id="alb" value="&lt;div style=&quot;color:#111111;line-height:1.2&quot;&gt;&lt;div style=&quot;font-size:12px;font-weight:700;color:#7042B4;margin-bottom:8px&quot;&gt;ONE SHARED LOAD BALANCER&lt;/div&gt;&lt;div style=&quot;font-size:26px;font-weight:700;margin-bottom:10px&quot;&gt;Private ALB&lt;/div&gt;&lt;div style=&quot;font-size:18px;line-height:24px&quot;&gt;443  ·  viewer API&lt;br&gt;8830  ·  launcher control&lt;br&gt;8443  ·  worker callbacks&lt;/div&gt;&lt;/div&gt;" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;rounded=1;arcSize=10;fillColor=#F7F2FF;strokeColor=#7042B4;align=left;verticalAlign=top;spacingLeft=18;spacingRight=12;spacingTop=18;spacingBottom=12;" vertex="1" parent="1">
+          <mxGeometry x="90" y="480" width="280" height="165" as="geometry" />
+        </mxCell>
+        <mxCell id="alb-placement" value="Private subnets" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=center;verticalAlign=top;spacing=0;fontSize=17;fontColor=#526276;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="90" y="655" width="280" height="24.65" as="geometry" />
+        </mxCell>
+        <mxCell id="controllers" value="&lt;div style=&quot;color:#111111;line-height:1.2&quot;&gt;&lt;div style=&quot;font-size:12px;font-weight:700;color:#B86212;margin-bottom:8px&quot;&gt;AMAZON ECS / FARGATE&lt;/div&gt;&lt;div style=&quot;font-size:23px;font-weight:700;margin-bottom:10px&quot;&gt;Backend + launcher&lt;/div&gt;&lt;div style=&quot;font-size:18px;line-height:24px&quot;&gt;Services cluster · On-Demand&lt;br&gt;One of each when active&lt;br&gt;0.5 vCPU / 2 GiB per task&lt;/div&gt;&lt;/div&gt;" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;rounded=1;arcSize=10;fillColor=#FFFFFF;strokeColor=#B86212;align=left;verticalAlign=top;spacingLeft=18;spacingRight=12;spacingTop=18;spacingBottom=12;" vertex="1" parent="1">
+          <mxGeometry x="475" y="480" width="310" height="165" as="geometry" />
+        </mxCell>
+        <mxCell id="workers" value="&lt;div style=&quot;color:#111111;line-height:1.2&quot;&gt;&lt;div style=&quot;font-size:12px;font-weight:700;color:#B86212;margin-bottom:8px&quot;&gt;AMAZON ECS / FARGATE&lt;/div&gt;&lt;div style=&quot;font-size:22px;font-weight:700;margin-bottom:10px&quot;&gt;Conversation workers&lt;/div&gt;&lt;div style=&quot;font-size:18px;line-height:24px&quot;&gt;Separate worker cluster&lt;br&gt;Launched by the launcher&lt;br&gt;On-Demand; Spot opt-in&lt;/div&gt;&lt;/div&gt;" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;rounded=1;arcSize=10;fillColor=#FFFFFF;strokeColor=#B86212;align=left;verticalAlign=top;spacingLeft=18;spacingRight=12;spacingTop=18;spacingBottom=12;" vertex="1" parent="1">
+          <mxGeometry x="985" y="480" width="310" height="165" as="geometry" />
+        </mxCell>
+        <mxCell id="backend-protocol" value="HTTPS" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=center;verticalAlign=top;spacing=0;fontSize=17;fontColor=#526276;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="370" y="523" width="105" height="24.65" as="geometry" />
+        </mxCell>
+        <mxCell id="backend-port" value="3001" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=center;verticalAlign=top;spacing=0;fontSize=17;fontColor=#526276;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="370" y="572" width="105" height="24.65" as="geometry" />
+        </mxCell>
+        <mxCell id="lifecycle-label" value="Launch / retire" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=center;verticalAlign=top;spacing=0;fontSize=18;fontColor=#B86212;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="790" y="525" width="190" height="26.099999999999998" as="geometry" />
+        </mxCell>
+        <mxCell id="database" value="&lt;div style=&quot;color:#111111;line-height:1.2&quot;&gt;&lt;div style=&quot;font-size:12px;font-weight:700;color:#2869A8;margin-bottom:8px&quot;&gt;MANAGED DATABASE&lt;/div&gt;&lt;div style=&quot;font-size:23px;font-weight:700;margin-bottom:10px&quot;&gt;Aurora PostgreSQL&lt;/div&gt;&lt;div style=&quot;font-size:18px;line-height:24px&quot;&gt;Serverless v2 · single writer&lt;br&gt;Private subnets · TLS 5432&lt;/div&gt;&lt;/div&gt;" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;rounded=1;arcSize=10;fillColor=#EFF6FD;strokeColor=#2869A8;align=left;verticalAlign=top;spacingLeft=18;spacingRight=12;spacingTop=18;spacingBottom=12;" vertex="1" parent="1">
+          <mxGeometry x="985" y="718" width="310" height="132" as="geometry" />
+        </mxCell>
+        <mxCell id="worker-db-label" value="SQL / TLS" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=center;verticalAlign=top;spacing=0;fontSize=17;fontColor=#526276;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="1149" y="683" width="150" height="24.65" as="geometry" />
+        </mxCell>
+        <mxCell id="controller-db-label" value="SQL / TLS" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=center;verticalAlign=top;spacing=0;fontSize=17;fontColor=#526276;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="872" y="754" width="110" height="24.65" as="geometry" />
+        </mxCell>
+        <mxCell id="scope-note" value="" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;rounded=1;arcSize=8;fillColor=#FFFFFF;strokeColor=#B9C3CE;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="90" y="718" width="310" height="132" as="geometry" />
+        </mxCell>
+        <mxCell id="scope-title" value="SIMPLIFIED VIEW" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=0;fontSize=15;fontColor=#526276;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="108" y="733" width="276" height="21.75" as="geometry" />
+        </mxCell>
+        <mxCell id="scope-line-1" value="Private ALB control/callback" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=0;fontSize=17;fontColor=#526276;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="108" y="764" width="276" height="24.65" as="geometry" />
+        </mxCell>
+        <mxCell id="scope-line-2" value="connections and one-off" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=0;fontSize=17;fontColor=#526276;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="108" y="789" width="276" height="24.65" as="geometry" />
+        </mxCell>
+        <mxCell id="scope-line-3" value="operator tasks are not drawn." style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=0;fontSize=17;fontColor=#526276;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="108" y="814" width="276" height="24.65" as="geometry" />
+        </mxCell>
+        <mxCell id="support-title" value="AWS SERVICES OUTSIDE THE VPC" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=0;fontSize=15;fontColor=#526276;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="90" y="900" width="350" height="21.75" as="geometry" />
+        </mxCell>
+        <mxCell id="artifact-label" value="Backend artifact access" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=0;fontSize=17;fontColor=#526276;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="650" y="897" width="300" height="24.65" as="geometry" />
+        </mxCell>
+        <mxCell id="runtime-inputs" value="&lt;div style=&quot;color:#111111;line-height:1.2&quot;&gt;&lt;div style=&quot;font-size:24px;font-weight:700;margin-bottom:10px&quot;&gt;Runtime inputs&lt;/div&gt;&lt;div style=&quot;font-size:19px;line-height:24px&quot;&gt;ECR · Secrets Manager&lt;br&gt;Scoped IAM roles&lt;/div&gt;&lt;/div&gt;" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;rounded=1;arcSize=10;fillColor=#F5F7FA;strokeColor=#172B40;align=left;verticalAlign=top;spacingLeft=18;spacingRight=12;spacingTop=18;spacingBottom=12;" vertex="1" parent="1">
+          <mxGeometry x="90" y="940" width="310" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="artifacts" value="&lt;div style=&quot;color:#111111;line-height:1.2&quot;&gt;&lt;div style=&quot;font-size:26px;font-weight:700;margin-bottom:10px&quot;&gt;S3 artifacts&lt;/div&gt;&lt;div style=&quot;font-size:18px;line-height:24px&quot;&gt;Versioned durable objects&lt;br&gt;Backend task-role access&lt;/div&gt;&lt;/div&gt;" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;rounded=1;arcSize=10;fillColor=#F2FAF2;strokeColor=#317C3C;align=left;verticalAlign=top;spacingLeft=18;spacingRight=12;spacingTop=18;spacingBottom=12;" vertex="1" parent="1">
+          <mxGeometry x="475" y="940" width="310" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="observability" value="&lt;div style=&quot;color:#111111;line-height:1.2&quot;&gt;&lt;div style=&quot;font-size:24px;font-weight:700;margin-bottom:10px&quot;&gt;Observability&lt;/div&gt;&lt;div style=&quot;font-size:18px;line-height:24px&quot;&gt;CloudWatch logs · X-Ray&lt;br&gt;Private S3 ALB access logs&lt;/div&gt;&lt;/div&gt;" style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;rounded=1;arcSize=10;fillColor=#F5F7FA;strokeColor=#172B40;align=left;verticalAlign=top;spacingLeft=18;spacingRight=12;spacingTop=18;spacingBottom=12;" vertex="1" parent="1">
+          <mxGeometry x="985" y="940" width="310" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" value="Solid arrows: application/data paths. Dashed arrow: ECS RunTask / StopTask. Connections simplified." style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=0;fontSize=17;fontColor=#526276;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="48" y="1090" width="1310" height="24.65" as="geometry" />
+        </mxCell>
+        <mxCell id="scope" value="Managed-domain profile; defaults shown. Source-reviewed architecture, not evidence of a live AWS deployment." style="whiteSpace=wrap;html=1;fontColor=#111111;fontFamily=DejaVu Sans;opacity=100;fillOpacity=100;strokeWidth=2;text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacing=0;fontSize=17;fontColor=#526276;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="48" y="1120" width="1310" height="24.65" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
