@@ -7,6 +7,10 @@ are immutable; corrections ship in a new version.
 
 ## [Unreleased]
 
+- Expose optional `worker_idle_timeout_seconds` for compatible Dispatch backends;
+  omit it by default for older-image compatibility. Automatic conversation retirement
+  leaves the warm spare and controllers running; installation sleep remains explicit.
+
 - Add opt-in `worker_warm_spare` for one launcher-managed unassigned Fargate
   worker, with private launcher-to-worker assignment access. Requires compatible
   Dispatch images; the default keeps ordinary on-demand launching.

@@ -8,7 +8,10 @@ Serverless v2 (with a small-RDS alternative), managed ACM/Route 53, a CloudFront
 SPA/API entry point and sampled application tracing. Terraform registers the worker definition;
 Dispatch's launcher creates and retires conversation tasks. The low-idle profile
 avoids permanent NAT, shares private managed ingress, and supports conditional
-zero-ACU Aurora plus explicit operator sleep/wake; no automatic idle timer is added.
+zero-ACU Aurora plus explicit operator sleep/wake. Compatible Dispatch images also
+retire inactive conversation workers automatically; the application owns that
+lifecycle. `worker_idle_timeout_seconds` optionally overrides its timeout without
+stopping controllers or the warm spare. Omit this input when using older images.
 
 **Status:** module **v0.1.0** is an early-stage source release, available in the
 [public Terraform Registry](https://registry.terraform.io/modules/dispatchlabs-ai/dispatch/aws/0.1.0).

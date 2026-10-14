@@ -76,6 +76,16 @@ variable "worker_warm_spare" {
   type        = bool
   default     = false
 }
+
+variable "worker_idle_timeout_seconds" {
+  description = "Conversation-worker inactivity timeout in compatible Dispatch backends. Null uses the application's default (600 seconds with automatic retirement); zero disables new automatic retirements. Does not stop the warm spare or controllers."
+  type        = number
+  default     = null
+  validation {
+    condition     = var.worker_idle_timeout_seconds == null ? true : var.worker_idle_timeout_seconds >= 0 && var.worker_idle_timeout_seconds <= 9007199254740 && floor(var.worker_idle_timeout_seconds) == var.worker_idle_timeout_seconds
+    error_message = "Use null or a nonnegative whole number of seconds representable as safe integer milliseconds."
+  }
+}
 variable "worker_memory" {
   description = "Fargate memory in MiB for new conversation workers, paired with worker_cpu."
   type        = string

@@ -44,8 +44,9 @@ module "dispatch" {
   image_pull_repository_arns  = var.image_pull_repository_arns
   application                 = var.application
 
-  worker_capacity_provider = var.worker_capacity_provider
-  log_retention_days       = var.log_retention_days
+  worker_capacity_provider    = var.worker_capacity_provider
+  worker_idle_timeout_seconds = var.worker_idle_timeout_seconds
+  log_retention_days          = var.log_retention_days
 
   certificate_arn                  = var.certificate_arn
   internal_alb                     = var.internal_alb

@@ -23,7 +23,7 @@ locals {
       "database-ca.pem"  = app.database_ca_pem
       "backend-ca.pem"   = app.backend_ca_pem
       "backend-cert.pem" = app.backend_certificate_pem
-      "backend.json" = jsonencode({
+      "backend.json" = jsonencode(merge({
         installationId           = app.installation_id
         configurationRevision    = app.configuration_revision
         authStoreConfigFile      = "${local.bootstrap_directory}/auth.json"
@@ -41,7 +41,7 @@ locals {
         launcherTokenFile = "${local.bootstrap_directory}/launcher-token"
         operatorTokenFile = "${local.bootstrap_directory}/operator-token"
         launcherUrl       = local.generated_launcher_url
-      })
+      }, var.worker_idle_timeout_seconds == null ? {} : { workerIdleTimeoutMs = var.worker_idle_timeout_seconds * 1000 }))
       }, local.controller_deployment_mode.backend == "rolling" ? {
       "controller.json" = jsonencode({
         databaseConfigFile = "${local.bootstrap_directory}/routing.json"

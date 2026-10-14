@@ -14,6 +14,12 @@ variable "worker_image" {
   type    = string
   default = null
 }
+
+variable "worker_idle_timeout_seconds" {
+  description = "Override the compatible Dispatch application's conversation idle timeout; null retains its default and zero disables automatic retirement."
+  type        = number
+  default     = null
+}
 variable "cpu_architecture" {
   type    = string
   default = "ARM64"
