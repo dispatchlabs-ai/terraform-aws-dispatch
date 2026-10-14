@@ -237,7 +237,7 @@ Follow [`installation.md`](installation.md), not this summary, for execution.
 | CPU architecture | `ARM64` by default; the documented 0.2.0 AMD64 archive import instead requires `X86_64` |
 | Worker privilege | Module default is non-root/read-only; `worker_package_installation = true` allows trusted root/writable workers. The complete example opts in whenever `worker_image` is supplied |
 | Database pause | Disabled by the default 0.5-ACU floor. Set minimum to zero only with a supported engine/region; every DB connection must close before the pause interval starts |
-| Conversation workers | Compatible Dispatch images automatically retire idle assigned workers after ten minutes by default. `worker_idle_timeout_seconds` optionally overrides that application setting; zero disables new automatic retirements. The warm spare remains available. |
+| Conversation workers | Compatible Dispatch images automatically retire idle assigned workers. Current application source defaults to sixty minutes; older images can differ. `worker_idle_timeout_seconds` sets an explicit timeout independently of the image default; zero disables new automatic retirements. The warm spare remains available. |
 | Installation sleep/wake | Explicit operator tooling; worker retirement does not stop controllers, pause Aurora or provide anonymous browser wake |
 | Telemetry | CloudWatch logs default to seven days; optional ADOT sidecars export to X-Ray with 10% application sampling by default; X-Ray retention is separate |
 

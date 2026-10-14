@@ -78,7 +78,7 @@ variable "worker_warm_spare" {
 }
 
 variable "worker_idle_timeout_seconds" {
-  description = "Conversation-worker inactivity timeout in compatible Dispatch backends. Null uses the application's default (600 seconds with automatic retirement); zero disables new automatic retirements. Does not stop the warm spare or controllers."
+  description = "Conversation-worker inactivity timeout in compatible Dispatch backends. Null uses that image version's application default; zero disables new automatic retirements. Does not stop the warm spare or controllers."
   type        = number
   default     = null
   validation {
