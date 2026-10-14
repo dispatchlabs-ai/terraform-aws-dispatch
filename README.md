@@ -10,10 +10,12 @@ Dispatch's launcher creates and retires conversation tasks. The low-idle profile
 avoids permanent NAT, shares private managed ingress, and supports conditional
 zero-ACU Aurora plus explicit operator sleep/wake; no automatic idle timer is added.
 
-**Status:** module **v0.1.0** is an early-stage source release; live AWS qualification
-remains pending. This repository is public. Dispatch [0.2.0 archives](https://github.com/dispatchlabs-ai/dispatch/releases/tag/v0.2.0)
+**Status:** module **v0.1.0** is an early-stage source release, available in the
+[public Terraform Registry](https://registry.terraform.io/modules/dispatchlabs-ai/dispatch/aws/0.1.0).
+Live AWS qualification remains pending. This repository is public. Dispatch
+[0.2.0 archives](https://github.com/dispatchlabs-ai/dispatch/releases/tag/v0.2.0)
 are available; [import them into ECR without rebuilding](docs/releases.md#import-020-archives-into-ecr).
-Public registry images, module registry registration and an independently
+Public container registry images, OpenTofu registry registration and an independently
 qualified fresh-account installation remain pending. Do not use sample identities
 or fabricated image digests to activate tasks.
 
@@ -35,18 +37,26 @@ digests plus a verified SPA release bundle. The module renders internal service/
 bootstrap configuration. No application checkout, Nix build or customer-specific
 runbook should be needed by a release consumer.
 
-Pin the module to an immutable release or full commit. Until registry registration
-is complete, use the `v0.1.0` Git release in your caller's module block:
+Pin the module to an immutable release or full commit. For Terraform, use the
+published registry version in your caller's module block:
+
+```hcl
+source  = "dispatchlabs-ai/dispatch/aws"
+version = "0.1.0"
+```
+
+OpenTofu registry registration remains pending. Terraform and OpenTofu resolve
+that shorthand through their respective default registries; registration in one
+does not register the other. Until OpenTofu registration is complete, use the Git
+source below with OpenTofu; it also works with Terraform without either registry:
 
 ```hcl
 source = "git::https://github.com/dispatchlabs-ai/terraform-aws-dispatch.git?ref=v0.1.0"
 ```
 
-After registration in each registry, the intended module address is
-`dispatchlabs-ai/dispatch/aws` with `version = "0.1.0"`. Terraform and OpenTofu
-resolve that shorthand through their respective default registries; registration
-in one does not register the other. See the [v0.1.0 source checks](docs/releases.md#v010-source-release)
-for tested engine/provider versions and qualification limits.
+For a Git source, omit `version`; the `ref` selects the release. See the
+[v0.1.0 source checks](docs/releases.md#v010-source-release) for tested
+engine/provider versions and qualification limits.
 
 ## Estimated monthly cost
 

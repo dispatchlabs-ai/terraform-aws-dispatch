@@ -20,8 +20,10 @@ configuration; do not substitute a local image ID. No fabricated manifest should
 Module **v0.1.0**, dated October 14, 2026, is the initial early-stage source
 release. Its features, fixes and limitations are recorded in [CHANGELOG.md](../CHANGELOG.md).
 It is not a Dispatch application/image release and does not qualify an application
-combination or live AWS installation. Module registry registration remains a
-separate, pending step; the Git tag is usable without either registry.
+combination or live AWS installation. Version **0.1.0** is published in the
+[public Terraform Registry](https://registry.terraform.io/modules/dispatchlabs-ai/dispatch/aws/0.1.0)
+from Git tag `v0.1.0`. OpenTofu registry registration remains pending; the Git tag
+is usable without either registry.
 
 ### Source validation
 
@@ -61,25 +63,43 @@ Maintain forthcoming changes under **Unreleased** in [CHANGELOG.md](../CHANGELOG
 then move them into a dated version section and record verification before tagging.
 Never move a published tag to correct a release; issue a new version instead.
 
-Initial registry registration is a one-time operator action for each registry:
+### Registry publication status
 
-1. Sign in to the [Terraform Registry](https://registry.terraform.io/) with the
-   appropriate GitHub repository permissions, authorize the integration, and use
-   **Publish Module** to select `dispatchlabs-ai/terraform-aws-dispatch`. The
-   registry indexes release tags and uses its GitHub webhook for future versions.
-2. Submit the same repository through the OpenTofu registry's
-   [new module issue form](https://github.com/opentofu/registry/issues/new?assignees=&labels=module%2Csubmission&projects=&template=module.yml&title=Module%3A+).
-   Its submission process requires the GitHub issue-form UI, not a CLI/API-created
-   issue or a direct registry-data pull request.
-3. Verify that `dispatchlabs-ai/dispatch/aws` version `0.1.0` resolves in each
-   registry before advertising registry installation as available. Terraform and
-   OpenTofu use different default registries for this same shorthand address.
+- **Terraform Registry — published October 14, 2026:**
+  [`dispatchlabs-ai/dispatch/aws` version `0.1.0`](https://registry.terraform.io/modules/dispatchlabs-ai/dispatch/aws/0.1.0).
+  The [public registry API](https://registry.terraform.io/v1/modules/dispatchlabs-ai/dispatch/aws/0.1.0)
+  confirms the version and source tag `v0.1.0`. Terraform callers can use
+  `source = "dispatchlabs-ai/dispatch/aws"` with `version = "0.1.0"`.
+- **OpenTofu Registry — registration pending:** use the pinned Git source in the
+  [README](../README.md#start-here) until registration is complete. Terraform and
+  OpenTofu use different default registries for the same shorthand address;
+  publication in one does not register the other.
 
-See the [Terraform publication requirements](https://developer.hashicorp.com/terraform/registry/modules/publish)
+Initial registry registration is a one-time operator action for each registry.
+Terraform registration is complete. Its public listing is managed in
+[HCP Terraform](https://app.terraform.io/) under **Registry → Public namespaces →
+dispatchlabs-ai**, not **Private library**. To publish a new public module, use
+**Publish → Module** within the public namespace and select its GitHub repository.
+Adding a module to the private library does not publish it to the public registry.
+For subsequent versions of this module, push a new semantic-version Git tag; the
+registry uses its GitHub webhook to index it. Confirm the version appears in the
+public listing before advertising it as available.
+
+For OpenTofu, submit the same repository through its
+[new module issue form](https://github.com/opentofu/registry/issues/new?assignees=&labels=module%2Csubmission&projects=&template=module.yml&title=Module%3A+).
+Its submission process requires the GitHub issue-form UI, not a CLI/API-created
+issue or a direct registry-data pull request. Confirm that version `0.1.0` resolves
+in the OpenTofu registry before advertising its shorthand installation as available.
+
+See the [Terraform publication requirements](https://developer.hashicorp.com/terraform/registry/modules/publish),
+[HCP public namespace publishing workflow](https://developer.hashicorp.com/terraform/cloud-docs/users-teams-organizations/organizations/public-namespace/artifacts#publish-artifacts),
 and [OpenTofu registration instructions](https://github.com/opentofu/registry#adding-providers-modules-or-gpg-keys-to-the-opentofu-registry).
-Both listings refer to the same source and release tags; no duplicate module
+Both registries can use the same source and release tags; no duplicate module
 implementation is needed. Git source pinned to the release tag or a full commit
 also works without a registry. Private sources require explicitly granted access.
+Registry-rendered documentation comes from the tagged snapshot. Updating `main`
+does not change the README shown for `v0.1.0`; documentation corrections will
+appear with a new release.
 
 The module uses the [MIT license](../LICENSE). Before publishing, check extracted
 source/license compatibility and review the full public tree for private identities,
@@ -96,8 +116,10 @@ verification that every satisfying engine version works. Record actual validated
 versions in the release, including separate engine lockfile/evidence contexts.
 
 No public image combination or live fresh-install qualification is claimed by the
-initial source extraction. Public registry registration and artifact publication
-remain open-source-release work.
+initial source extraction. Terraform module registration is complete; OpenTofu
+registration and public container image/qualified release-manifest publication
+remain pending. A public module listing does not qualify application artifacts
+or a live installation.
 
 ## Import 0.2.0 archives into ECR
 
@@ -236,6 +258,10 @@ captures in the owning restricted installation evidence, not this public module.
 
 ## Recorded source checks — October 10, 2026
 
+The dated acceptance records below preserve the evidence and outstanding work
+at the time of each check. For current module registry availability, see
+[Registry publication status](#registry-publication-status).
+
 At module `0edd7f19ed461f55de466aa2e91d34936f34100d`, Documenter inspected
 Developer's integrated check output: format/init/validate and all **eight mock
 plan scenarios** passed under OpenTofu **1.13.1** and Terraform **1.13.5**, using
@@ -263,8 +289,9 @@ temporary HOME/credential-empty environments; no application checkout, AWS API,
 apply, image pull or customer access was used. This closes the external-caller
 **source** check, not the live fresh-install acceptance above.
 
-**Remaining acceptance:** actual public image pulls, registry registration,
-fresh-account AWS initialization/activation, private enrollment/provider terminal,
+**Remaining acceptance at the time of these checks:** actual public image pulls,
+registry registration, fresh-account AWS initialization/activation, private
+enrollment/provider terminal,
 model/tool/browser workflow, controller/worker replacement and measured rollout
 latency remain unverified. The repository is now public; that visibility does not qualify
 the runtime or registry distribution. Source publication is verified separately from these
@@ -340,8 +367,9 @@ verified bundles/images; no application checkout or build is required.
 
 Actual CDN/API/SSE behavior, log/trace delivery, Aurora initialization/failover,
 Spot interruption, provider login, zero-downtime continuity and fresh-account
-installation remain **unverified**. Public artifacts/registry registration remain
-gated on the open-source release; source publication is not that qualification.
+installation remain **unverified**. At the time of these checks, public artifact
+publication and registry registration remained gated on the open-source release;
+source publication alone did not establish those outcomes.
 
 ## Idle-cost source acceptance — October 10, 2026
 
