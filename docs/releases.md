@@ -31,14 +31,17 @@ Linux AMD64:
 
 | Engine | AWS provider | Checks |
 | --- | --- | --- |
-| Terraform 1.14.5 | 6.67.0 | Format, backend-disabled init, generated and complete caller validation, 29 mock plans |
-| OpenTofu 1.12.6 | 6.67.0 | Format, backend-disabled init, generated and complete caller validation, 29 mock plans |
+| Terraform 1.14.5 | 6.67.0 | Format, backend-disabled init, generated and complete caller validation, 31 mock plans |
+| OpenTofu 1.12.6 | 6.67.0 | Format, backend-disabled init, generated and complete caller validation, 31 mock plans |
 
 All **47 Python tests** pass under both **Python 3.10.20** and **3.14.4**.
 **Node.js 24.14.1** passes activation-template syntax checking, **nine offline
 operator-request cases**, and edge-function checks. These include current-task
 readiness, all attached ALB targets, bounded sleep count propagation, exact clean
-termination, and refusal to replay mutations.
+termination, and refusal to replay mutations. The mock plans also cover default
+worker sizing, worker-only resource/collector overrides, their explicit ECR pull
+grant, and rejection of an unpinned worker collector image. These checks do not
+qualify SOCI lazy loading or worker startup performance on AWS.
 
 The pinned provider emits a known deprecation warning for Cloud Map's explicit
 `failure_threshold`; validation and mock plans still pass. OpenTofu rewrites its

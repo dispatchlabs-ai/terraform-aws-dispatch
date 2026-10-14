@@ -27,6 +27,9 @@ Initial early-stage source release. **Live AWS qualification remains pending.**
 - Hardened backend/launcher task definitions, readiness-gated rolling deployment
   configuration, optional trusted package-installation workers, and opt-in
   Fargate Spot workers.
+- Configurable worker CPU/memory and a worker-only tracing collector image override
+  for independently pinned worker images, including caller-published ECR SOCI
+  indexes. Controller resource and collector defaults remain unchanged.
 - Typed application configuration using secret ARN references, explicit database
   initialization, private credential maintenance, activation, and operator-led
   sleep/wake with non-replayable operation receipts.
@@ -44,12 +47,15 @@ Initial early-stage source release. **Live AWS qualification remains pending.**
   `elasticloadbalancing:DescribeTargetHealth`.
 - Sleep tolerates bounded propagation of accepted desired-count updates without
   replaying mutations or relaxing exact clean-termination requirements.
+- Refreshed cost estimates and the README summary to price the current shared
+  private ALB/public-IP topology, distinguish default idle costs from opt-in
+  auto-pause, and include worker IPv4 and usage allowances.
 
 ### Compatibility and verification
 
 - Declares Terraform/OpenTofu `>= 1.12.6, < 2.0.0` and pins AWS provider `6.67.0`.
 - Source checks pass on Linux AMD64 with Terraform `1.14.5` and OpenTofu `1.12.6`:
-  formatting, backend-disabled initialization, caller validation, and 29 mock-plan
+  formatting, backend-disabled initialization, caller validation, and 31 mock-plan
   scenarios per engine.
 - All 47 Python tests pass with Python `3.10.20` and `3.14.4`; Node.js `24.14.1`
   passes activation-template syntax, nine operator-request cases, and edge-function

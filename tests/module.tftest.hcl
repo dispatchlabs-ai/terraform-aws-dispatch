@@ -27,6 +27,12 @@ mock_provider "aws" {
   mock_resource "aws_iam_role" {
     defaults = { arn = "arn:aws:iam::123456789012:role/example" }
   }
+  mock_resource "aws_ecr_repository" {
+    defaults = { arn = "arn:aws:ecr:us-east-1:123456789012:repository/dispatch-example" }
+  }
+  mock_resource "aws_cloudwatch_log_group" {
+    defaults = { arn = "arn:aws:logs:us-east-1:123456789012:log-group:/dispatch/dispatch-example/example" }
+  }
   mock_resource "aws_lb" {
     defaults = { arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/example/1234567890123456" }
   }
@@ -158,6 +164,32 @@ run "public_images" {
   assert {
     condition     = jsondecode(aws_ecs_task_definition.stable["backend"].container_definitions)[1].readonlyRootFilesystem && jsondecode(aws_ecs_task_definition.stable["backend"].container_definitions)[1].user == "65532:65532"
     error_message = "Controller hardening must not inherit trusted worker permissions."
+  }
+  assert {
+    condition     = aws_ecs_task_definition.worker[0].cpu == "512" && aws_ecs_task_definition.worker[0].memory == "2048" && alltrue([for role in ["backend", "launcher", "worker"] : local.tracing_containers[role][0].image == var.tracing_collector_image])
+    error_message = "Default worker sizing and collector image must preserve the baseline."
+  }
+}
+run "worker_tuning_is_isolated" {
+  command = plan
+  variables {
+    image                          = "ghcr.io/dispatchlabs-ai/dispatch@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    worker_cpu                     = "1024"
+    worker_memory                  = "4096"
+    worker_tracing_collector_image = "123456789012.dkr.ecr.us-east-1.amazonaws.com/collector@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    image_pull_repository_arns     = ["arn:aws:ecr:us-east-1:123456789012:repository/collector"]
+  }
+  assert {
+    condition     = aws_ecs_task_definition.worker[0].cpu == "1024" && aws_ecs_task_definition.worker[0].memory == "4096" && alltrue([for task in aws_ecs_task_definition.stable : task.cpu == "512" && task.memory == "2048"])
+    error_message = "Worker resource overrides must reach the worker definition without resizing controllers."
+  }
+  assert {
+    condition     = one([for container in jsondecode(aws_ecs_task_definition.worker[0].container_definitions) : container.image if container.name == "tracing"]) == var.worker_tracing_collector_image && alltrue([for task in aws_ecs_task_definition.stable : one([for container in jsondecode(task.container_definitions) : container.image if container.name == "tracing"]) == var.tracing_collector_image])
+    error_message = "The worker collector override must not alter controller collector images."
+  }
+  assert {
+    condition     = contains(jsondecode(aws_iam_role_policy.execution["worker"].policy).Statement[1].Resource, "arn:aws:ecr:us-east-1:123456789012:repository/collector")
+    error_message = "The worker execution role must retain the explicitly authorized collector repository."
   }
 }
 run "reject_unpinned_image" {
