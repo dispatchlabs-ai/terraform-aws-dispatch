@@ -66,6 +66,16 @@ variable "worker_package_installation" {
   type        = bool
   default     = false
 }
+variable "worker_cpu" {
+  description = "Fargate CPU units for new conversation workers. Select an AWS-supported CPU/memory combination; controllers retain their separate baseline."
+  type        = string
+  default     = "512"
+}
+variable "worker_memory" {
+  description = "Fargate memory in MiB for new conversation workers, paired with worker_cpu."
+  type        = string
+  default     = "2048"
+}
 variable "cpu_architecture" {
   type    = string
   default = "ARM64"

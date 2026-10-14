@@ -136,6 +136,28 @@ Aurora paused: verify zero `ServerlessDatabaseCapacity` and pause events without
 opening a database connection. Retained ALB/storage/secrets/DNS still cost money;
 report complete cold-wake latency, not only Aurora's advertised resume interval.
 
+## Worker startup tuning
+
+`worker_cpu` and `worker_memory` select the Fargate task size for newly launched
+conversation attempts; defaults remain 512 CPU units and 2048 MiB. Use an
+[AWS-supported combination](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html).
+Changing these inputs registers a worker definition and rolls the launcher to
+that definition. Existing conversation tasks retain their original resources.
+
+For lazy image loading, publish the worker and its tracing collector as SOCI
+index manifest v2 images in private ECR. Pin `worker_image` and
+`worker_tracing_collector_image` to those index digests, and include their
+repository ARNs in `image_pull_repository_arns`. The collector override applies
+only to workers; controller collectors retain `tracing_collector_image`.
+Fargate's task metadata must report `Snapshotter: soci` for each container before
+claiming lazy loading. Measure admission through application readiness separately
+from ECS image pull and task start timestamps; lazy loading defers file reads and
+does not guarantee a startup deadline. See [AWS's Fargate SOCI requirements](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-tasks-services.html#lazy-loading-container-images-using-seekable-oci).
+
+Run standalone diagnostics in the services cluster. The dedicated worker
+cluster is exclusively for launcher-owned, identity-tagged conversation tasks;
+even stopped unowned tasks can block its strict inventory while ECS retains them.
+
 ## Maintenance and recovery
 
 Database/provider maintenance requires sealed admission, settled writes and

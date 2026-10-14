@@ -21,6 +21,15 @@ variable "tracing_collector_image" {
     error_message = "Pin the collector by immutable registry digest."
   }
 }
+variable "worker_tracing_collector_image" {
+  description = "Optional immutable collector image for workers only, for example a private ECR SOCI index. Null retains tracing_collector_image."
+  type        = string
+  default     = null
+  validation {
+    condition     = var.worker_tracing_collector_image == null ? true : can(regex("@sha256:[a-f0-9]{64}$", var.worker_tracing_collector_image))
+    error_message = "Pin the worker collector by immutable registry digest."
+  }
+}
 locals {
   tracing_environment = {
     for role in ["backend", "launcher", "worker"] : role => var.enable_tracing ? {
@@ -46,7 +55,7 @@ locals {
   tracing_containers = {
     for role in ["backend", "launcher", "worker"] : role => var.enable_tracing ? [{
       name                   = "tracing"
-      image                  = var.tracing_collector_image
+      image                  = role == "worker" ? coalesce(var.worker_tracing_collector_image, var.tracing_collector_image) : var.tracing_collector_image
       essential              = false
       user                   = "65532:65532"
       readonlyRootFilesystem = true
