@@ -97,6 +97,27 @@ class Fake:
         raise AssertionError(action)
 
 
+class StaleSleepReads(Fake):
+    def __init__(self, stale_reads=1, reported_count=1):
+        super().__init__()
+        self.stale_reads, self.reported_count = stale_reads, reported_count
+        self.remaining = {r: 0 for r in S}
+    def call(self, service, action, payload, extra_args=()):
+        result = super().call(service, action, payload, extra_args)
+        if action == 'update-service':
+            assert payload['desiredCount'] == 0
+            r = next(r for r in S if S[r]['arn'] == payload['service'])
+            self.remaining[r] = self.stale_reads
+        elif action == 'describe-services':
+            for actual in result['services']:
+                r = next(r for r in S if S[r]['arn'] == actual['serviceArn'])
+                if self.remaining[r] != 0:
+                    actual.update(desiredCount=self.reported_count, runningCount=1)
+                    if self.remaining[r] is not None:
+                        self.remaining[r] -= 1
+        return result
+
+
 class Tests(unittest.TestCase):
     def execute(self, aws, operation, path, wait_seconds=1):
         clock = [0.0]
@@ -113,6 +134,60 @@ class Tests(unittest.TestCase):
             self.assertEqual([p['service'] for p in updates], [S['backend']['arn'], S['launcher']['arn']])
             self.assertEqual(sum(a == 'run-task' for a, _ in aws.calls), 1)
             self.assertLess(next(n for n, (a, _) in enumerate(aws.calls) if a == 'run-task'), next(n for n, (a, _) in enumerate(aws.calls) if a == 'update-service'))
+    def test_sleep_polls_stale_counts_for_both_controllers_without_replay(self):
+        with tempfile.TemporaryDirectory() as d:
+            aws = StaleSleepReads(stale_reads=2)
+            self.assertEqual(self.execute(aws, 'sleep', Path(d, 'receipt.json'), 15)['status'], 'controllers-stopped')
+            updates = [(n, p) for n, (a, p) in enumerate(aws.calls) if a == 'update-service']
+            self.assertEqual([p['service'] for _, p in updates], [S['backend']['arn'], S['launcher']['arn']])
+            self.assertEqual(sum(a == 'run-task' for a, _ in aws.calls), 1)
+            for index, (start, payload) in enumerate(updates):
+                end = updates[index + 1][0] if index + 1 < len(updates) else len(aws.calls)
+                r = next(r for r in S if S[r]['arn'] == payload['service'])
+                calls = aws.calls[start + 1:end]
+                self.assertGreaterEqual(sum(a == 'describe-services' for a, _ in calls), 3)
+                self.assertTrue(any(a == 'describe-tasks' and p['tasks'] == [T[r]] for a, p in calls))
+
+    def test_sleep_stale_count_timeout_leaves_launcher_running(self):
+        with tempfile.TemporaryDirectory() as d:
+            aws = StaleSleepReads(stale_reads=None)
+            path = Path(d, 'receipt.json')
+            with self.assertRaises(i.Error): self.execute(aws, 'sleep', path)
+            self.assertEqual(json.loads(path.read_text())['status'], 'incomplete-or-uncertain')
+            self.assertEqual(aws.counts, {'backend': 0, 'launcher': 1})
+            self.assertEqual(sum(a == 'update-service' for a, _ in aws.calls), 1)
+            self.assertEqual(sum(a == 'run-task' for a, _ in aws.calls), 1)
+            start = next(n for n, (a, _) in enumerate(aws.calls) if a == 'update-service')
+            self.assertGreater(sum(a == 'describe-services' for a, _ in aws.calls[start + 1:]), 1)
+
+    def test_sleep_unexpected_count_is_not_treated_as_propagation_delay(self):
+        for count in [2, None]:
+            with self.subTest(count=count), tempfile.TemporaryDirectory() as d:
+                aws = StaleSleepReads(reported_count=count)
+                with self.assertRaises(i.Error): self.execute(aws, 'sleep', Path(d, 'receipt.json'))
+                self.assertEqual(sum(a == 'update-service' for a, _ in aws.calls), 1)
+                start = next(n for n, (a, _) in enumerate(aws.calls) if a == 'update-service')
+                self.assertEqual(sum(a == 'describe-services' for a, _ in aws.calls[start + 1:]), 1)
+
+    def test_sleep_still_requires_clean_stopped_evidence_after_count_propagation(self):
+        for state in ['STOPPING', 'unclean']:
+            class UnsettledTask(StaleSleepReads):
+                def call(self, service, action, payload, extra_args=()):
+                    result = super().call(service, action, payload, extra_args)
+                    if action == 'describe-tasks' and self.counts['backend'] == 0:
+                        for task in result['tasks']:
+                            if task['taskArn'] == T['backend']:
+                                if state == 'unclean':
+                                    task['containers'][0]['exitCode'] = 137
+                                else:
+                                    task['lastStatus'] = state
+                    return result
+            with self.subTest(state=state), tempfile.TemporaryDirectory() as d:
+                aws = UnsettledTask()
+                with self.assertRaises(i.Error): self.execute(aws, 'sleep', Path(d, 'receipt.json'))
+                self.assertEqual(aws.counts['launcher'], 1)
+                self.assertEqual(sum(a == 'update-service' for a, _ in aws.calls), 1)
+
     def test_controller_replacement_during_sleep_gate_refuses_all_count_changes(self):
         class Replacement(Fake):
             def call(self, service, action, payload, extra_args=()):

@@ -194,6 +194,10 @@ def lifecycle(aws, outputs, operation, account, region, path, wait_seconds):
                     if operation == 'wake':
                         tasks = controller_tasks(aws, cluster, item)
                         return current.get('desiredCount') == 1 and current.get('runningCount') == 1 and current.get('pendingCount') == 0 and len(tasks) == 1 and tasks[0].get('lastStatus') == 'RUNNING'
+                    # DescribeServices can still show the pre-update count after
+                    # an accepted update. Poll it without replaying UpdateService.
+                    if current.get('desiredCount') == expected_counts[role]:
+                        return False
                     require(current.get('desiredCount') == 0, 'Controller desired count changed concurrently.')
                     exact = aws.call('ecs', 'describe-tasks', {'cluster': cluster, 'tasks': captured[role]})
                     require(not exact.get('failures') and {t.get('taskArn') for t in exact.get('tasks', [])} == set(captured[role]), 'Captured controller termination is unavailable.')
