@@ -83,6 +83,52 @@ def controller_tasks(aws, cluster, service):
     return tasks
 
 
+def readiness_configuration(aws, services, current):
+    checks = {}
+    for role, item in services.items():
+        definition = aws.call('ecs', 'describe-task-definition', {'taskDefinition': item['task_definition_arn']}).get('taskDefinition', {})
+        require(definition.get('taskDefinitionArn') == item['task_definition_arn'], 'Readiness task definition differs from selected scope.')
+        essential = [c for c in definition.get('containerDefinitions', []) if c.get('essential', True)]
+        checked = [c['name'] for c in essential if c.get('healthCheck')]
+        balancers = current[item['arn']].get('loadBalancers', [])
+        require(essential and (checked or balancers), 'Wake requires an essential container health check or an ALB target group for each controller.')
+        checks[role] = {'essential': [c['name'] for c in essential], 'checked': checked, 'load_balancers': balancers}
+    return checks
+
+
+def controllers_ready(aws, cluster, services, expected_tasks, checks):
+    current = inventory(aws, cluster, services)
+    for role, item in services.items():
+        actual, check = current[item['arn']], checks[role]
+        require(sorted(actual.get('loadBalancers', []), key=lambda lb: lb['targetGroupArn']) ==
+                sorted(check['load_balancers'], key=lambda lb: lb['targetGroupArn']), 'Controller ingress changed; reconcile before continuing.')
+        if actual.get('desiredCount') != 1 or actual.get('runningCount') != 1 or actual.get('pendingCount') != 0:
+            return False
+        tasks = controller_tasks(aws, cluster, item)
+        require(len(tasks) == 1 and {t['taskArn'] for t in tasks} == set(expected_tasks[role]), 'Controller task identities drifted during readiness observation.')
+        task = tasks[0]
+        containers = {c['name']: c for c in task.get('containers', [])}
+        if task['lastStatus'] != 'RUNNING' or task.get('healthStatus') == 'UNHEALTHY':
+            return False
+        if any(containers.get(name, {}).get('lastStatus') != 'RUNNING' for name in check['essential']):
+            return False
+        # Tasks without essential container health checks normally report UNKNOWN.
+        if check['checked'] and (task.get('healthStatus') != 'HEALTHY' or any(
+                containers.get(name, {}).get('healthStatus') != 'HEALTHY' for name in check['checked'])):
+            return False
+        for balancer in check['load_balancers']:
+            container = containers.get(balancer['containerName'], {})
+            addresses = [n['privateIpv4Address'] for n in container.get('networkInterfaces', []) if n.get('privateIpv4Address')]
+            if len(addresses) != 1:
+                return False
+            target = {'Id': addresses[0], 'Port': balancer['containerPort']}
+            result = aws.call('elbv2', 'describe-target-health', {'TargetGroupArn': balancer['targetGroupArn'], 'Targets': [target]})
+            health = result.get('TargetHealthDescriptions', [])
+            if len(health) != 1 or any(health[0].get('Target', {}).get(k) != v for k, v in target.items()) or health[0].get('TargetHealth', {}).get('State') != 'healthy':
+                return False
+    return True
+
+
 def wait_until(check, seconds):
     deadline = time.monotonic() + seconds
     while not check():
@@ -103,6 +149,7 @@ def lifecycle(aws, outputs, operation, account, region, path, wait_seconds):
     require(all(len(tasks) == desired for tasks in captured.values()), 'Controller task inventory disagrees with service counts.')
     if operation == 'wake':
         assert_workers_absent(aws, workers)
+        health_checks = readiness_configuration(aws, services, found)
     expected_counts = {role: desired for role in services}
     expected_tasks = {role: list(tasks) for role, tasks in captured.items()}
     def revalidate():
@@ -163,11 +210,9 @@ def lifecycle(aws, outputs, operation, account, region, path, wait_seconds):
             if operation == 'wake':
                 revalidate()
                 operator_task()  # Readiness requires activation; never wait for ALB ready first.
-                def ready():
-                    current = inventory(aws, cluster, services)
-                    return all(s.get('desiredCount') == 1 and s.get('runningCount') == 1 and s.get('pendingCount') == 0
-                               and s['deployments'][0].get('rolloutState') == 'COMPLETED' for s in current.values())
-                wait_until(ready, wait_seconds)
+                # Scaling desiredCount does not start a deployment; a prior COMPLETED
+                # rollout says nothing about the health of these newly started tasks.
+                wait_until(lambda: controllers_ready(aws, cluster, services, expected_tasks, health_checks), wait_seconds)
             else:
                 assert_workers_absent(aws, workers)
             revalidate()

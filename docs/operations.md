@@ -108,8 +108,21 @@ actual state: pending, running, stopping or unknown identities refuse wake. Desi
 then backend; poll authenticated read-only `/internal/status` until owner
 initialization before the **single** private activation request. ECS `RUNNING`,
 `/internal/health` and admission-dependent readiness cannot authorize that request.
-Then observe readiness separately. Retired workers return through fresh attempts
-and disposable-workspace recovery, not restored local files.
+Then observe readiness separately: all configured essential-container health checks
+and every attached ALB target group must report healthy for the current tasks.
+ALB checks select each task's exact private IP and container port; a healthy old
+target or a previous deployment's `COMPLETED` status is not readiness evidence.
+Tasks without container health checks normally report ECS health `UNKNOWN`; their
+ALB targets provide the health signal instead. Wake refuses configurations with
+neither signal before starting controllers. Use readiness-capable health checks,
+not process liveness, when configuring these services.
+
+The lifecycle operator needs `ecs:DescribeTaskDefinition` for the selected
+controller definitions and `elasticloadbalancing:DescribeTargetHealth` in addition
+to its existing ECS lifecycle permissions. Health observation is read-only and
+bounded by `--wait-seconds`; a timeout or permission error leaves an incomplete
+receipt without replaying activation or service updates. Retired workers return
+through fresh attempts and disposable-workspace recovery, not restored local files.
 
 On refusal, timeout or uncertainty, inspect both receipts and exact task/service
 state; **do not rerun mutations**. Partial lifecycle state requires reconciliation,
