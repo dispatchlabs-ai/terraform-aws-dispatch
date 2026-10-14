@@ -178,3 +178,8 @@ run "reject_unpinned_collector" {
   variables { tracing_collector_image = "public.ecr.aws/aws-observability/aws-otel-collector:latest" }
   expect_failures = [var.tracing_collector_image]
 }
+run "reject_unpinned_worker_collector" {
+  command = plan
+  variables { worker_tracing_collector_image = "123456789012.dkr.ecr.us-east-1.amazonaws.com/collector:latest" }
+  expect_failures = [var.worker_tracing_collector_image]
+}
