@@ -40,6 +40,16 @@ digests plus a verified SPA release bundle. The module renders internal service/
 bootstrap configuration. No application checkout, Nix build or customer-specific
 runbook should be needed by a release consumer.
 
+Compatible images support optional `application.github` with `broker_origin`,
+`token_secret_arn`, and `manager_user_ids`. The origin must use HTTPS; the user IDs
+are authenticated Dispatch identities allowed to manage company connections.
+ECS supplies the broker credential only to the backend. The external credential
+service independently authorizes its client installations and retains App keys;
+workers receive only repository-scoped tokens. Project repository/grant changes
+use Dispatch's UI and do not require Terraform. Omit this input for older images
+or installations without GitHub access. See the application-owned
+[GitHub access contract](https://github.com/dispatchlabs-ai/dispatch/blob/main/packages/web/docs/github-integration.md).
+
 Pin the module to an immutable release or full commit. For Terraform, use the
 published registry version in your caller's module block:
 

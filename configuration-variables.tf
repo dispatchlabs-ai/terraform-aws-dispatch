@@ -11,6 +11,11 @@ variable "application" {
     callback_ca_pem                = optional(string)
     backend_certificate_pem        = string
     backend_private_key_secret_arn = string
+    github = optional(object({
+      broker_origin    = string
+      token_secret_arn = string
+      manager_user_ids = set(string)
+    }))
     database_url_secret_arns = object({
       auth    = string, provider = string, catalog = string, directory = string,
       routing = string, launcher = string, workers = string
@@ -33,10 +38,18 @@ variable "application" {
   }
   validation {
     condition = var.application == null ? true : alltrue([
-      for arn in concat(values(var.application.database_url_secret_arns), values(var.application.encryption_key_secret_arns), values(var.application.token_secret_arns), [var.application.backend_private_key_secret_arn]) :
+      for arn in concat(values(var.application.database_url_secret_arns), values(var.application.encryption_key_secret_arns), values(var.application.token_secret_arns), [var.application.backend_private_key_secret_arn], var.application.github == null ? [] : [var.application.github.token_secret_arn]) :
       can(regex("^arn:aws(-us-gov)?:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[A-Za-z0-9/_+=.@-]+$", arn))
     ])
     error_message = "Supply full Secrets Manager secret ARNs (not values or JSON-key/version selectors). Secret contents are delivered only by ECS."
+  }
+  validation {
+    condition = var.application == null ? true : var.application.github == null ? true : (
+      can(regex("^https://[A-Za-z0-9.-]+(:[0-9]+)?$", var.application.github.broker_origin)) &&
+      length(var.application.github.manager_user_ids) > 0 &&
+      alltrue([for user_id in var.application.github.manager_user_ids : length(trimspace(user_id)) > 0])
+    )
+    error_message = "GitHub requires an HTTPS broker origin without a path or credentials and an explicit nonempty set of authenticated connection-manager user IDs."
   }
   validation {
     condition = var.application == null ? true : (

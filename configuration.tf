@@ -50,7 +50,14 @@ locals {
         tls                = { keyFile = "${local.bootstrap_directory}/backend-key.pem", certFile = "${local.bootstrap_directory}/backend-cert.pem" }
         peerTls            = { caFile = "${local.bootstrap_directory}/backend-ca.pem", serverName = local.backend_dns_name }
       })
-    } : {})
+      } : {}, app.github == null ? {} : {
+      "github.json" = jsonencode({
+        url            = app.github.broker_origin
+        tokenFile      = "${local.bootstrap_directory}/github-broker-token"
+        companyId      = app.company_id
+        managerUserIds = sort(tolist(app.github.manager_user_ids))
+      })
+    })
     launcher = merge({
       "database-ca.pem" = app.database_ca_pem
       "backend-ca.pem"  = app.backend_ca_pem
@@ -109,6 +116,7 @@ locals {
       { for store, arn in app.encryption_key_secret_arns : "${store}-key" => { arn = arn, encoding = "base64" } },
       { for name in ["worker", "launcher", "operator"] : "${name}-token" => { arn = app.token_secret_arns[name], encoding = "utf8" } },
       { "backend-key.pem" = { arn = app.backend_private_key_secret_arn, encoding = "utf8" } },
+      app.github == null ? {} : { "github-broker-token" = { arn = app.github.token_secret_arn, encoding = "utf8" } },
       local.controller_deployment_mode.backend == "rolling" ? { "backend-peer-token" = { arn = app.token_secret_arns.backend_peer, encoding = "utf8" } } : {}
     )
     launcher = merge({
@@ -135,6 +143,7 @@ locals {
       DISPATCH_DATA_DIR      = "/data"
       DISPATCH_WORKSPACE_DIR = "/workspace"
       }, role == "backend" ? { DISPATCH_BACKEND_WORKERS_CONFIG_FILE = "${local.bootstrap_directory}/backend.json", DISPATCH_SERVE_CLIENT = local.managed_domain ? "false" : "true" } : {},
+      role == "backend" && app.github != null ? { DISPATCH_GITHUB_CONFIG_FILE = "${local.bootstrap_directory}/github.json" } : {},
       role == "launcher" ? { DISPATCH_LAUNCHER_CONFIG_FILE = "${local.bootstrap_directory}/launcher.json" } : {},
       contains(["backend", "launcher"], role) && lookup(var.service_deployment_mode, role, "rolling") == "rolling" ? {
         DISPATCH_CONTROLLER_CONFIG_FILE = "${local.bootstrap_directory}/controller.json"

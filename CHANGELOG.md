@@ -7,6 +7,10 @@ are immutable; corrections ship in a new version.
 
 ## [Unreleased]
 
+- Add optional `application.github` configuration for a company GitHub credential
+  service, its backend-only Secrets Manager reference and explicit connection
+  administrators. App keys and broker credentials are never passed to workers.
+
 - Expose optional `worker_idle_timeout_seconds` for compatible Dispatch backends;
   omit it by default for older-image compatibility. Automatic conversation retirement
   leaves the warm spare and controllers running; installation sleep remains explicit.

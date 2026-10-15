@@ -73,6 +73,67 @@ mock_provider "aws" {
     }
   }
 }
+
+run "github_credentials_are_backend_only" {
+  command = plan
+  variables {
+    image = "ghcr.io/dispatchlabs-ai/dispatch@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    application = {
+      installation_id                = "dispatch-example"
+      company_id                     = "example", company_name = "Example"
+      origin                         = "https://dispatch.example.com"
+      configuration_revision         = "release-example"
+      database_ca_pem                = "-----BEGIN CERTIFICATE-----\nexample\n-----END CERTIFICATE-----"
+      backend_ca_pem                 = "-----BEGIN CERTIFICATE-----\nexample\n-----END CERTIFICATE-----"
+      backend_certificate_pem        = "-----BEGIN CERTIFICATE-----\nexample\n-----END CERTIFICATE-----"
+      backend_private_key_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:backend-key-example"
+      database_url_secret_arns = {
+        auth      = "arn:aws:secretsmanager:us-east-1:123456789012:secret:auth-db-example"
+        provider  = "arn:aws:secretsmanager:us-east-1:123456789012:secret:provider-db-example"
+        catalog   = "arn:aws:secretsmanager:us-east-1:123456789012:secret:catalog-db-example"
+        directory = "arn:aws:secretsmanager:us-east-1:123456789012:secret:directory-db-example"
+        routing   = "arn:aws:secretsmanager:us-east-1:123456789012:secret:routing-db-example"
+        launcher  = "arn:aws:secretsmanager:us-east-1:123456789012:secret:launcher-db-example"
+        workers   = "arn:aws:secretsmanager:us-east-1:123456789012:secret:workers-db-example"
+      }
+      encryption_key_secret_arns = {
+        auth     = "arn:aws:secretsmanager:us-east-1:123456789012:secret:auth-key-example"
+        provider = "arn:aws:secretsmanager:us-east-1:123456789012:secret:provider-key-example"
+        catalog  = "arn:aws:secretsmanager:us-east-1:123456789012:secret:catalog-key-example"
+      }
+      token_secret_arns = {
+        worker        = "arn:aws:secretsmanager:us-east-1:123456789012:secret:worker-token-example"
+        launcher      = "arn:aws:secretsmanager:us-east-1:123456789012:secret:launcher-token-example"
+        operator      = "arn:aws:secretsmanager:us-east-1:123456789012:secret:operator-token-example"
+        backend_peer  = "arn:aws:secretsmanager:us-east-1:123456789012:secret:backend_peer-token-example"
+        launcher_peer = "arn:aws:secretsmanager:us-east-1:123456789012:secret:launcher_peer-token-example"
+      }
+
+      github = {
+        broker_origin    = "https://github-access.example.com"
+        token_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:github-broker-example"
+        manager_user_ids = ["administrator-example"]
+      }
+    }
+  }
+  assert {
+    condition = (
+      local.generated_bundles[0].backend.secrets.DISPATCH_SECRET_GITHUB_BROKER_TOKEN == var.application.github.token_secret_arn &&
+      toset(jsondecode(local.role_public_files[0].backend["github.json"]).managerUserIds) == toset(["administrator-example"]) &&
+      local.generated_bundles[0].backend.environment.DISPATCH_GITHUB_CONFIG_FILE == "/tmp/dispatch-bootstrap/github.json"
+    )
+    error_message = "The backend must receive the configured GitHub broker reference and explicit administrators."
+  }
+  assert {
+    condition = alltrue([for role in ["launcher", "initializer", "maintenance"] : (
+      !contains(keys(local.generated_bundles[0][role].secrets), "DISPATCH_SECRET_GITHUB_BROKER_TOKEN") &&
+      !contains(keys(local.generated_bundles[0][role].environment), "DISPATCH_GITHUB_CONFIG_FILE")
+      )]) && alltrue([for container in jsondecode(aws_ecs_task_definition.worker[0].container_definitions) :
+      !strcontains(jsonencode(container), "github-broker")
+    ])
+    error_message = "GitHub broker credentials must not reach launchers, operator maintenance, initializers or workers."
+  }
+}
 mock_provider "aws" {
   alias = "edge"
   mock_data "aws_region" {
