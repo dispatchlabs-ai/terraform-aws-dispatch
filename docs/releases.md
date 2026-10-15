@@ -15,6 +15,35 @@ configuration identity and record destination manifest digests. A registry
 representation change can change a manifest digest without changing the image
 configuration; do not substitute a local image ID. No fabricated manifest should stand in for publication.
 
+## v0.2.0 source release
+
+Module **v0.2.0**, dated October 15, 2026, adds opt-in warm-spare workers,
+conversation-worker idle timeout configuration and backend-only GitHub credential
+service access. See [CHANGELOG.md](../CHANGELOG.md) for details. These features
+require compatible Dispatch images; matching module/application version numbers
+do not establish compatibility. Live AWS and application-combination qualification
+remain pending.
+
+### Source validation
+
+Separate Git-archive copies of module source `5d7bb17` pass the following checks
+on Linux AMD64 with AWS provider **6.67.0**, without AWS credentials:
+
+| Engine | Checks |
+| --- | --- |
+| Terraform 1.14.5 | Format, backend-disabled init, generated caller validation, 32 mock plans |
+| OpenTofu 1.12.6 | Format, backend-disabled init, generated caller validation, 32 mock plans |
+
+All **47 Python tests** pass under **Python 3.14.4**. **Node.js 24.14.1** passes
+activation-template syntax checking, **nine offline operator-request cases** and
+edge-function checks. The known Cloud Map `failure_threshold` deprecation warning
+remains non-blocking. These are offline source checks, not AWS plans/applies,
+image pulls, warm-spare/idle-retirement runtime checks or GitHub service qualification.
+
+Terraform Registry indexing of `v0.2.0` must be confirmed after pushing the tag;
+`0.1.0` remains the latest registry version confirmed in this record. OpenTofu
+registration remains pending. The pinned Git source works without either registry.
+
 ## v0.1.0 source release
 
 Module **v0.1.0**, dated October 14, 2026, is the initial early-stage source

@@ -13,7 +13,9 @@ retire inactive conversation workers automatically; the application owns that
 lifecycle. `worker_idle_timeout_seconds` optionally overrides its timeout without
 stopping controllers or the warm spare. Omit this input when using older images.
 
-**Status:** module **v0.1.0** is an early-stage source release, available in the
+**Status:** module **v0.2.0** is an early-stage source release. Use the pinned Git
+source below until its Terraform Registry indexing is confirmed. Version **0.1.0**
+is already available in the
 [public Terraform Registry](https://registry.terraform.io/modules/dispatchlabs-ai/dispatch/aws/0.1.0).
 Live AWS qualification remains pending. This repository is public. Dispatch
 [0.2.0 archives](https://github.com/dispatchlabs-ai/dispatch/releases/tag/v0.2.0)
@@ -50,8 +52,9 @@ use Dispatch's UI and do not require Terraform. Omit this input for older images
 or installations without GitHub access. See the application-owned
 [GitHub access contract](https://github.com/dispatchlabs-ai/dispatch/blob/main/packages/web/docs/github-integration.md).
 
-Pin the module to an immutable release or full commit. For Terraform, use the
-published registry version in your caller's module block:
+Pin the module to an immutable release or full commit. For Terraform, the latest
+confirmed published registry version is shown below; use `version = "0.2.0"` only
+after confirming it is indexed, or use the Git source for the new features:
 
 ```hcl
 source  = "dispatchlabs-ai/dispatch/aws"
@@ -64,11 +67,11 @@ does not register the other. Until OpenTofu registration is complete, use the Gi
 source below with OpenTofu; it also works with Terraform without either registry:
 
 ```hcl
-source = "git::https://github.com/dispatchlabs-ai/terraform-aws-dispatch.git?ref=v0.1.0"
+source = "git::https://github.com/dispatchlabs-ai/terraform-aws-dispatch.git?ref=v0.2.0"
 ```
 
 For a Git source, omit `version`; the `ref` selects the release. See the
-[v0.1.0 source checks](docs/releases.md#v010-source-release) for tested
+[v0.2.0 source checks](docs/releases.md#v020-source-release) for tested
 engine/provider versions and qualification limits.
 
 ## Estimated monthly cost

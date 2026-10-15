@@ -7,17 +7,33 @@ are immutable; corrections ship in a new version.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-15
+
+### Added
+
 - Add optional `application.github` configuration for a company GitHub credential
   service, its backend-only Secrets Manager reference and explicit connection
   administrators. App keys and broker credentials are never passed to workers.
-
 - Expose optional `worker_idle_timeout_seconds` for compatible Dispatch backends;
   omit it by default for older-image compatibility. Automatic conversation retirement
   leaves the warm spare and controllers running; installation sleep remains explicit.
-
 - Add opt-in `worker_warm_spare` for one launcher-managed unassigned Fargate
   worker, with private launcher-to-worker assignment access. Requires compatible
   Dispatch images; the default keeps ordinary on-demand launching.
+
+### Compatibility and verification
+
+- New application features are opt-in and require compatible Dispatch images;
+  module and application versions remain independent.
+- Source checks pass on Linux AMD64 with Terraform `1.14.5`, OpenTofu `1.12.6`
+  and AWS provider `6.67.0`: formatting, backend-disabled initialization,
+  generated caller validation and 32 mock-plan scenarios per engine.
+- All 47 Python tests pass with Python `3.14.4`; Node.js `24.14.1` passes
+  activation-template syntax, nine operator-request cases and edge-function checks.
+  See the [release record](docs/releases.md#v020-source-release).
+- Live AWS qualification, a qualified module/application combination and
+  OpenTofu registry registration remain pending. Terraform Registry indexing of
+  this version must be confirmed separately after the tag is pushed.
 
 ## [0.1.0] - 2026-10-14
 
@@ -80,5 +96,6 @@ Initial early-stage source release. **Live AWS qualification remains pending.**
   guarantee is provided. Root-enabled workers are for trusted code, not hostile
   code isolation. Cost estimates are not measured bills.
 
-[Unreleased]: https://github.com/dispatchlabs-ai/terraform-aws-dispatch/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/dispatchlabs-ai/terraform-aws-dispatch/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/dispatchlabs-ai/terraform-aws-dispatch/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/dispatchlabs-ai/terraform-aws-dispatch/tree/v0.1.0
