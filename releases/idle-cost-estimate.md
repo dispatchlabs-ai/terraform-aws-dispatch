@@ -1,5 +1,10 @@
 # Idle and active cost comparison — October 14, 2026
 
+**Historical cost model.** Whole-installation sleep/wake tooling was retired on
+October 16, 2026. The duty cycles below describe the earlier proposal, not a
+supported operating procedure. Use the [current cost model](cost-estimate.md)
+for always-on controllers and independently retired conversation workers.
+
 **Planning estimates, not measured bills or verified sleep/wake behavior.** USD,
 us-east-1, 730 hours/month, ARM64, public On-Demand rates; no free tiers or credits.
 Rates were rechecked on October 14, 2026; rate sources and general exclusions are

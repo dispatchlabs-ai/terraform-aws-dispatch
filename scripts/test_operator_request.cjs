@@ -47,11 +47,5 @@ assert.equal(result.code, 0);
 result = run('activate', [{ error: true }, { status: 200 }, { error: true }]);
 assert.equal(result.calls.filter(c => c.method === 'POST').length, 1);
 assert.equal(result.code, 1);
-for (const response of [{ status: 409 }, { status: 503 }, { status: 200, body: '{"quiesced":false}' }, { status: 200, body: 'not-json' }, { status: 200, body: 'x'.repeat(1025) }, { error: true }]) {
-  result = run('sleep', [response]);
-  assert.equal(result.code, 1);
-  assert.deepEqual(result.calls, [{ url: '/internal/sleep', method: 'POST' }]);
-}
-result = run('sleep', [{ status: 200, body: '{"quiesced":true}' }]);
-assert.equal(result.code, 0);
-console.log('9 offline operator-request cases passed.');
+assert.throws(() => run('sleep', []), /exit-1/);
+console.log('3 offline operator-request cases passed.');

@@ -78,91 +78,13 @@ option was enabled. Workers receive no new AWS permissions. Physical ECS tags
 retain the spare's original identity; the launcher journal records its assigned
 conversation/attempt. Use launcher status for that mapping, not task tags alone.
 
-Drain and planned sleep retire spare capacity and suspend replenishment. Explicit
-wake resumes it. Disabling the option retires the unassigned spare while retaining
+Drain retires spare capacity and suspends replenishment. Explicit
+activation resumes it. Disabling the option retires the unassigned spare while retaining
 already assigned workers. Keep compatible images while any warm-assignment
 journal records remain; an older launcher cannot interpret those records. Do not
 erase the journal to downgrade. Record actual claim/replenishment and startup
 latency observations for each installation; module validation is not runtime
 qualification.
-
-## Operator sleep and wake
-
-**Source tooling, not verified AWS sleep/wake.** The low-idle inputs do not
-schedule retirement. There is no idle timer or anonymous browser wake; current
-session authentication reads PostgreSQL and can wake it before validation.
-Use compatible sleep-capable images, `enable_activation = true`, and re-export
-`sleep`, `activation`, `controller_services`, both cluster ARNs, `task_subnet_ids`
-and `task_assign_public_ip`. The complete caller does this; refresh its private
-`terraform output -json` file after applying the registered definitions.
-
-Preview is local and does not call AWS:
-
-```sh
-python3 scripts/run-installation.py sleep --outputs OUTPUTS \
-  --account "$AWS_ACCOUNT_ID" --region "$AWS_REGION"
-python3 scripts/run-installation.py wake --outputs OUTPUTS \
-  --account "$AWS_ACCOUNT_ID" --region "$AWS_REGION"
-```
-
-After reviewing identities/costs and holding exclusive lifecycle control, execute
-one selected operation with `--execute --confirm-exclusive-control --receipt
-/private/NEW-lifecycle.json`. No concurrent operator, Terraform apply or scheduler
-may change counts/admission. The helper also reserves a sibling `.task.json`
-receipt before the one operator task; never overwrite/reuse either file.
-
-Sleep requires both single-instance controllers steady and their exact identities
-observable. The private `/internal/sleep` gate seals new work, inspects native
-foreground/background tasks and unsettled submissions, and retires only idle
-workers through existing launcher termination evidence. **`/internal/drain`
-cancels work and is not a safe idle gate.** `waitForIdle()` alone is insufficient.
-A successful gate is necessary but not sufficient: revalidate fresh controller
-counts and exact running identities after the gate and before each scale-down.
-Identity drift must refuse the operation, not let an older task's exit stand in
-for the current owner. After each accepted scale-down, the helper polls any stale
-pre-update desired count within `--wait-seconds`; it never resubmits the update.
-Unexpected counts still refuse the operation, and a count that never converges
-leaves an incomplete receipt. Observe backend actual `STOPPED` with clean exit,
-then launcher actual termination/clean exit; counts or missing inventory alone
-are not confirmation. Support callbacks stay open
-while admitted work finishes. Planned-quiescence health may remain green while
-new-work admission is sealed; it does not mean idle or publicly serving. Persisted cold drain does not
-authorize planned-quiescence readiness; lost ownership/unhealthy stores still fail
-ECS/ALB readiness. The separate liveness route is not admission or idle evidence.
-A busy/unknown result must not stop controllers;
-partial refusal can already have retired idle workers. Reconcile state, then use
-explicit private activation/undrain to reopen surviving admission when safe.
-
-Wake requires both controllers stopped, with worker/task inventory described by
-actual state: pending, running, stopping or unknown identities refuse wake. Desired
-`STOPPED` is not actual `STOPPED`; empty desired-PENDING discovery proves nothing. Start launcher,
-then backend; poll authenticated read-only `/internal/status` until owner
-initialization before the **single** private activation request. ECS `RUNNING`,
-`/internal/health` and admission-dependent readiness cannot authorize that request.
-Then observe readiness separately: all configured essential-container health checks
-and every attached ALB target group must report healthy for the current tasks.
-ALB checks select each task's exact private IP and container port; a healthy old
-target or a previous deployment's `COMPLETED` status is not readiness evidence.
-Tasks without container health checks normally report ECS health `UNKNOWN`; their
-ALB targets provide the health signal instead. Wake refuses configurations with
-neither signal before starting controllers. Use readiness-capable health checks,
-not process liveness, when configuring these services.
-
-The lifecycle operator needs `ecs:DescribeTaskDefinition` for the selected
-controller definitions and `elasticloadbalancing:DescribeTargetHealth` in addition
-to its existing ECS lifecycle permissions. Health observation is read-only and
-bounded by `--wait-seconds`; a timeout or permission error leaves an incomplete
-receipt without replaying activation or service updates. Retired workers return
-through fresh attempts and disposable-workspace recovery, not restored local files.
-
-On refusal, timeout or uncertainty, inspect both receipts and exact task/service
-state; **do not rerun mutations**. Partial lifecycle state requires reconciliation,
-not a new wake or sleep request. Never clear recovery latches or replay uncertain
-writes. Reconcile the intended service counts in the caller before a later apply,
-which can otherwise undo imperative sleep. Controller termination does not prove
-Aurora paused: verify zero `ServerlessDatabaseCapacity` and pause events without
-opening a database connection. Retained ALB/storage/secrets/DNS still cost money;
-report complete cold-wake latency, not only Aurora's advertised resume interval.
 
 ## Worker startup tuning
 

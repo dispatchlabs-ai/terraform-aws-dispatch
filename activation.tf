@@ -1,5 +1,5 @@
 variable "enable_activation" {
-  description = "Register unscheduled one-shot private activation and non-cancelling sleep tasks. Invoke explicitly after launcher and backend startup, before waiting for readiness."
+  description = "Register an unscheduled one-shot private activation task. Invoke explicitly after launcher and backend startup, before waiting for readiness."
   type        = bool
   default     = false
   validation {
@@ -103,51 +103,4 @@ output "activation" {
     security_group_id   = aws_security_group.activation[0].id
   } : null
   description = "Unscheduled one-shot activation task. Use service_cluster_arn, task_subnet_ids and task_assign_public_ip. Never automatically retry an uncertain result."
-}
-
-resource "aws_ecs_task_definition" "sleep" {
-  count                    = local.activation_enabled ? 1 : 0
-  family                   = "${var.name}-sleep"
-  requires_compatibilities = ["FARGATE"]
-  network_mode             = "awsvpc"
-  cpu                      = "256"
-  memory                   = "512"
-  execution_role_arn       = aws_iam_role.activation_execution[0].arn
-  task_role_arn            = aws_iam_role.activation_task[0].arn
-  runtime_platform {
-    operating_system_family = "LINUX"
-    cpu_architecture        = var.cpu_architecture
-  }
-  container_definitions = jsonencode([{
-    name            = "sleep", image = var.image, essential = true,
-    user            = "65532:65532", readonlyRootFilesystem = true,
-    linuxParameters = { initProcessEnabled = true, capabilities = { add = [], drop = ["ALL"] } },
-    entryPoint      = ["node"]
-    command         = ["-e", file("${path.module}/templates/activate.cjs")],
-    environment = [
-      { name = "DISPATCH_BACKEND_ORIGIN", value = "https://backend.${aws_service_discovery_private_dns_namespace.this.name}:3001" },
-      { name = "DISPATCH_BACKEND_CA", value = var.application.backend_ca_pem },
-      { name = "DISPATCH_OPERATOR_ACTION", value = "sleep" }
-    ],
-    secrets = [{ name = "DISPATCH_OPERATOR_TOKEN", valueFrom = var.application.token_secret_arns.operator }],
-    logConfiguration = { logDriver = "awslogs", options = {
-      awslogs-group  = aws_cloudwatch_log_group.this["bootstrap"].name,
-      awslogs-region = data.aws_region.current.region, awslogs-stream-prefix = "sleep"
-    } }
-  }])
-  tags = local.tags
-}
-output "sleep" {
-  value = local.activation_enabled ? {
-    task_definition_arn = aws_ecs_task_definition.sleep[0].arn
-    security_group_id   = aws_security_group.activation[0].id
-  } : null
-  description = "One-shot non-cancelling sleep gate. Success still requires fresh worker/controller inventory and identity checks before scale-down; refusal or uncertainty must never stop controllers."
-}
-output "controller_services" {
-  value = { for role, service in aws_ecs_service.stable : role => {
-    arn                 = service.id
-    task_definition_arn = aws_ecs_task_definition.stable[role].arn
-  } }
-  description = "Exact registered controller identities for explicit IAM-authorized sleep/wake."
 }

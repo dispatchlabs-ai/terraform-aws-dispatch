@@ -7,30 +7,19 @@ const origin = process.env.DISPATCH_BACKEND_ORIGIN;
 const action = process.env.DISPATCH_OPERATOR_ACTION ?? 'activate';
 delete process.env.DISPATCH_OPERATOR_TOKEN;
 delete process.env.DISPATCH_BACKEND_CA;
-if (!token || !ca || !origin || !['activate', 'sleep'].includes(action)) {
+if (!token || !ca || !origin || action !== 'activate') {
   console.error('Operator configuration missing');
   process.exit(1);
 }
 const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 const options = { ca, rejectUnauthorized: true, headers };
 function submitOnce() {
-  let valid = false;
-  const request = https.request(new URL(action === 'sleep' ? '/internal/sleep' : '/internal/undrain', origin), {
+  const request = https.request(new URL('/internal/undrain', origin), {
     ...options, method: 'POST'
   }, response => {
-    let body = '';
-    response.on('data', chunk => {
-      if (action === 'sleep') {
-        body += chunk.toString('utf8');
-        if (body.length > 1024) request.destroy(new Error('response limit'));
-      }
-    });
+    response.resume();
     response.on('end', () => {
-      valid = response.statusCode === 200;
-      if (valid && action === 'sleep') {
-        try { valid = JSON.parse(body).quiesced === true; }
-        catch { valid = false; }
-      }
+      const valid = response.statusCode === 200;
       console.log(valid ? 'Operator request acknowledged' : 'Operator request refused or unresolved');
       if (!valid) process.exitCode = 1;
     });
@@ -42,7 +31,7 @@ function submitOnce() {
   request.end('{}');
 }
 // RUNNING and /internal/health do not prove the backend owner is initialized.
-// Read-only authenticated status does. Aurora/task wake may take minutes.
+// Read-only authenticated status does. Owner startup may take minutes.
 function waitForOwner(deadline) {
   let settled = false;
   const finish = ready => {
@@ -65,8 +54,7 @@ function waitForOwner(deadline) {
   request.end();
 }
 try {
-  if (action === 'activate') waitForOwner(Date.now() + 360000);
-  else submitOnce();
+  waitForOwner(Date.now() + 360000);
 } catch {
   console.error('Operator configuration refused');
   process.exitCode = 1;

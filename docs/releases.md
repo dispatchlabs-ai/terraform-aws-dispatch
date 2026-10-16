@@ -1,5 +1,11 @@
 # Releases and acceptance
 
+**Post-0.2.0 lifecycle change:** whole-installation sleep/wake tooling and its
+`sleep` and `controller_services` outputs were removed on October 16, 2026.
+Earlier release checks below remain historical evidence for those immutable
+versions. Remove the retired output references when upgrading callers; private
+activation and automatic conversation-worker retirement remain supported.
+
 Module versions and Dispatch image versions are independent. A release must name
 an explicitly compatible combination, not infer compatibility from matching tags.
 Controller and Ubuntu-worker images must each have qualified Linux ARM64/AMD64

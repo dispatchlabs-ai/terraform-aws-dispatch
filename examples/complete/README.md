@@ -54,7 +54,5 @@ Managed-domain ingress shares one private ALB with isolated listener ports:
 443 viewer API, 8830 launcher control and 8443 worker callbacks. A caller-owned
 public API ALB retains separate private control ingress.
 
-The root re-exports `sleep` and `controller_services` for explicit IAM operator
-[sleep/wake](../../docs/operations.md#operator-sleep-and-wake). Enable activation
-only with compatible images; no automatic idle scheduler is created. Tooling,
-mock plans and price arithmetic do not establish actual Aurora pause or wake.
+Enable activation for the explicit private activation task described in
+[installation](../../docs/installation.md).

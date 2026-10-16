@@ -7,8 +7,7 @@ IAM/security groups and HTTPS ingress. The baseline extension adds Aurora
 Serverless v2 (with a small-RDS alternative), managed ACM/Route 53, a CloudFront
 SPA/API entry point and sampled application tracing. Terraform registers the worker definition;
 Dispatch's launcher creates and retires conversation tasks. The low-idle profile
-avoids permanent NAT, shares private managed ingress, and supports conditional
-zero-ACU Aurora plus explicit operator sleep/wake. Compatible Dispatch images also
+avoids permanent NAT and shares private managed ingress. Compatible Dispatch images also
 retire inactive conversation workers automatically; the application owns that
 lifecycle. `worker_idle_timeout_seconds` optionally overrides its timeout without
 stopping controllers or the warm spare. Omit this input when using older images.
@@ -32,7 +31,7 @@ Licensed under [MIT](LICENSE).
 - [Complete caller example](examples/complete/README.md)
 - [Installation and activation](docs/installation.md)
 - [Security and retention](docs/operations.md)
-- [Monthly AWS cost estimate](releases/cost-estimate.md) and [conditional idle/active comparison](releases/idle-cost-estimate.md)
+- [Monthly AWS cost estimate](releases/cost-estimate.md)
 - [Changelog](CHANGELOG.md) and [release and acceptance contract](docs/releases.md)
 
 You supply the AWS provider/region and restricted state backend, final HTTPS
@@ -95,14 +94,14 @@ Workers cost about **$0.02831/running hour**, including IPv4. Aurora scaling,
 logging, storage and traffic can increase the bill. The small single-AZ RDS
 alternative lowers the always-on/no-worker subtotal to about **$92/month**.
 
-Sleeping is not the default: `aurora_min_capacity = 0` and all database connections
-closed are required for auto-pause, with supported engine/region settings. Sleep
-requires explicit operator action, incurs wake latency, and remains unqualified
-on live AWS. The module initially defaults to zero controllers; retained
-infrastructure still costs money.
+Aurora auto-pause requires `aurora_min_capacity = 0`, all database connections
+closed and supported engine/region settings. Running controllers keep connections
+open. The module initially defaults to zero controllers; retained infrastructure
+still costs money. Whole-installation sleep/wake tooling was removed on October
+16, 2026; the stopped-task rows above are infrastructure cost scenarios.
 
 See the [detailed cost breakdown, assumptions and AWS rate sources](releases/cost-estimate.md)
-and [idle/active duty cycles and sleep/wake caveats](releases/idle-cost-estimate.md).
+for the current topology.
 These are planning estimates, not measured bills or spend ceilings.
 
 ## Ownership

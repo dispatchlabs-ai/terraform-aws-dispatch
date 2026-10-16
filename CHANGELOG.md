@@ -7,6 +7,14 @@ are immutable; corrections ship in a new version.
 
 ## [Unreleased]
 
+### Removed
+
+- Remove whole-installation sleep/wake orchestration, the registered sleep task,
+  `sleep` and `controller_services` outputs, and the associated runbook. Callers
+  upgrading from earlier versions must remove those output references. Private
+  activation, controller deployment and automatic conversation-worker retirement
+  remain supported. Retained state and existing release tags are unchanged.
+
 ## [0.2.0] - 2026-10-15
 
 ### Added
