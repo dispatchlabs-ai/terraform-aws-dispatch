@@ -11,8 +11,6 @@ import tarfile
 import tempfile
 import unittest
 
-from test_select_artifacts import fixture
-
 SCRIPT = Path(__file__).with_name("publish-frontend.py")
 spec = importlib.util.spec_from_file_location("publisher", SCRIPT)
 p = importlib.util.module_from_spec(spec)
@@ -123,16 +121,13 @@ class FrontendTests(unittest.TestCase):
             root = Path(temp)
             bundle = root / "bundle.tgz"
             digest = archive(bundle, [("index.html", b"index", tarfile.REGTYPE)])
-            manifest = fixture()
-            manifest["frontend"]["sha256"] = digest
-            (root / "release.json").write_text(json.dumps(manifest))
             (root / "outputs.json").write_text(json.dumps({"frontend_bucket": "example-bucket"}))
-            result = subprocess.run([sys.executable, str(SCRIPT.resolve()), str(root / "release.json"), str(bundle),
-                "--module-version", "0.1.0", "--platform", "linux/arm64", "--outputs", str(root / "outputs.json"),
+            result = subprocess.run([sys.executable, str(SCRIPT.resolve()), str(bundle), "--sha256", digest, "--outputs", str(root / "outputs.json"),
                 "--account", "123456789012", "--region", "us-east-1"],
                 cwd=temp, env={"PATH": "/nonexistent"}, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(json.loads(result.stdout)["preview"])
+            self.assertEqual(json.loads(result.stdout)["frontend_release_prefix"], "releases/sha256-" + digest)
             self.assertEqual(list(root.glob("receipt*")), [])
 
 

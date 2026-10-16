@@ -265,12 +265,11 @@ Sources: [`variables.tf`](../variables.tf), [`services.tf`](../services.tf),
   `18.6.1`; its presence in source is **not** confirmation that AWS offers that
   version with the required Serverless/auto-pause behavior in your target region.
 - Pin an immutable module revision and verified image digests with matching CPU
-  architecture. The [release guide](releases.md#import-020-archives-into-ecr)
-  documents available 0.2.0 AMD64 archives and ECR import, while registry release
-  metadata and module/application qualification remain separate pending work.
-- Frontend publishing is a separate release operation. The current publisher
-  helper needs a qualified manifest; do not invent compatibility metadata just
-  to make it accept an archive.
+  architecture. The [release guide](../releases/README.md)
+  describes public image digests and optional ECR mirroring. Module/application
+  qualification remains separate from artifact publication.
+- Frontend publishing is a separate release operation. Use the released archive and its published SHA-256
+  with the frontend publisher; no compatibility manifest is required.
 - Retain databases, artifacts and their matching encryption/token secrets.
   Destruction guards are intentional; changing a name, database mode or hostname
   is not a harmless application update. The hostname also affects passkey identity.

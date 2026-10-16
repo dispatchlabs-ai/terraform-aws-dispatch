@@ -5,12 +5,6 @@ customer-owned credentials and permission to invoke the selected ECS task and pa
 its scoped roles. These helpers do not install tools, create credentials, apply
 Terraform, or access a customer repository. They do not create a public release.
 
-## Select release artifacts
-
-[`select-artifacts.py`](select-artifacts.py) validates a trusted publisher manifest
-and prints the selected image inputs offline. See the [image release contract](../releases/README.md)
-for format, provenance requirements and verification limits.
-
 ## Invoke a registered operator task
 
 [`run-operator.py`](run-operator.py) supports only these explicit operations:
@@ -91,7 +85,8 @@ transport evidence is not full application/browser acceptance.
 
 ### Database operations and uncertain outcomes
 
-Both database operations require `--confirm-services-stopped`, including previews.
+Executing either database operation requires `--confirm-services-stopped`.
+Offline previews require no shutdown or stopped-owner assertion.
 Before supplying it, independently confirm the exact previous backend, launcher,
 worker and maintenance executors actually STOPPED. Desired count zero, expired
 leases, missing inventory and an available database lock are not that confirmation.

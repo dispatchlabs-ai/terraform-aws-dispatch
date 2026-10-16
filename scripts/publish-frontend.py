@@ -16,7 +16,6 @@ import tarfile
 import tempfile
 
 HERE = Path(__file__).resolve().parent
-selector = runpy.run_path(str(HERE / "select-artifacts.py"))
 operator = runpy.run_path(str(HERE / "run-operator.py"))
 require = operator["require"]
 Error = operator["OperationError"]
@@ -26,7 +25,7 @@ MAX_BYTES = 256 * 1024 * 1024
 def bundle_files(path, digest):
     require(path.stat().st_size <= 64 * 1024 * 1024, "Compressed bundle exceeds limit.")
     data = path.read_bytes()
-    require(hashlib.sha256(data).hexdigest() == digest, "Bundle checksum does not match trusted manifest.")
+    require(hashlib.sha256(data).hexdigest() == digest, "Bundle checksum does not match the published SHA-256.")
     files, total = {}, 0
     with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as archive:
         for index, member in enumerate(archive):
@@ -106,10 +105,8 @@ def publish(aws, bucket, prefix, files, receipt_path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("manifest", type=Path)
     parser.add_argument("bundle", type=Path)
-    parser.add_argument("--module-version", required=True)
-    parser.add_argument("--platform", choices=selector["PLATFORMS"], required=True)
+    parser.add_argument("--sha256", required=True, help="archive checksum from the trusted release's SHA256SUMS")
     parser.add_argument("--outputs", type=Path, required=True)
     parser.add_argument("--account", required=True)
     parser.add_argument("--region", required=True)
@@ -118,10 +115,9 @@ def main():
     parser.add_argument("--receipt", type=Path)
     args = parser.parse_args()
     try:
-        manifest = json.loads(args.manifest.read_text(), object_pairs_hook=selector["unique_object"])
-        selected = selector["select"](manifest, args.module_version, args.platform)
-        files = bundle_files(args.bundle, manifest["frontend"]["sha256"])
-        prefix = selected["frontend_release_prefix"]
+        require(re.fullmatch(r"[a-f0-9]{64}", args.sha256) is not None, "Expected a lowercase SHA-256 digest.")
+        files = bundle_files(args.bundle, args.sha256)
+        prefix = "releases/sha256-" + args.sha256
         bucket = operator["output"](operator["read_json"](args.outputs), "frontend_bucket")
         require(isinstance(bucket, str) and re.fullmatch(r"[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]", bucket),
                 "Invalid frontend bucket output.")

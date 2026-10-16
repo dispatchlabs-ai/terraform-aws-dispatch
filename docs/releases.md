@@ -13,13 +13,13 @@ artifacts before advertising a multi-platform index. Record source/packaging
 revisions, index and child digests separately. Registry digest identities are not
 local Docker image IDs.
 
-The artifact selector and manifest contract are owned by
-[`releases/README.md`](../releases/README.md). Metadata validation is offline:
-it does not prove registry access, image contents or Fargate execution. Verify
-direct public-image pulls separately; customer ECR imports must verify
+Use the application's published image digests and frontend archive checksum;
+[`releases/README.md`](../releases/README.md) describes selection. No separate
+compatibility manifest or selector is required. Verify direct public-image pulls
+separately; customer ECR imports must verify
 configuration identity and record destination manifest digests. A registry
 representation change can change a manifest digest without changing the image
-configuration; do not substitute a local image ID. No fabricated manifest should stand in for publication.
+configuration; do not substitute a local image ID.
 
 ## v0.2.0 source release
 
@@ -261,10 +261,8 @@ publication workflow to a new immutable release prefix while retaining shared
 hashed assets and earlier prefixes. Its archive SHA-256 is
 `59654ea1d75f9308013d3e22cca5bfc8bd6d43917df25a9c9cf8bf34a0d37214`;
 frontend packaging revision is `2af772e74c551e62f988db7bc5a971a94c3e1db1`.
-The current `publish-frontend.py` requires a schema-v1 registry manifest with an
-exact qualified module-version claim; do not fabricate that claim merely to run
-the helper. Resolve that contract with the owning publisher or use your existing
-frontend publication workflow. Image import alone does not apply Terraform,
+Use `publish-frontend.py` with that archive checksum as described in
+[installation step 4](installation.md#4-prepare-the-frontend-release). Image import alone does not apply Terraform,
 switch the frontend, initialize a database or qualify hosted/model/worker behavior.
 
 ## Fresh-install acceptance

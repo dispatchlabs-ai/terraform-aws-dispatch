@@ -57,12 +57,10 @@ def arn(value, kind, account, region):
     return value
 
 
-def request_for(outputs, operation, account, region, stopped):
+def request_for(outputs, operation, account, region):
     require(re.fullmatch(r"[0-9]{12}", account) is not None, "Invalid expected account.")
     require(re.fullmatch(r"[a-z0-9-]+", region) is not None, "Invalid region.")
     require(operation in OPERATIONS, "Unknown operation.")
-    if operation.startswith("database-"):
-        require(stopped, "Database operations require independent stopped-owner confirmation.")
     key, container = OPERATIONS[operation]
     operator = output(outputs, key)
     require(isinstance(operator, dict), "Selected operator task is not enabled.")
@@ -202,11 +200,12 @@ def main():
     try:
         aws = Aws(args.account, args.region, args.profile)
         if args.command == "run":
-            request, container = request_for(read_json(args.outputs), args.operation, args.account,
-                                             args.region, args.confirm_services_stopped)
+            request, container = request_for(read_json(args.outputs), args.operation, args.account, args.region)
             if not args.execute:
                 print(json.dumps({"preview": True, "request": request}, indent=2))
                 return 0
+            if args.operation.startswith("database-"):
+                require(args.confirm_services_stopped, "Database execution requires independent stopped-owner confirmation.")
             require(args.receipt is not None, "Execution requires a new receipt path.")
             receipt = submit(aws, request, container, args.operation, args.account, args.region, args.receipt)
             print(json.dumps(receipt, indent=2))

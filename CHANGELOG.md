@@ -7,6 +7,13 @@ are immutable; corrections ship in a new version.
 
 ## [Unreleased]
 
+### Changed
+
+- Frontend publication takes a released archive and `--sha256`; remove the unused
+  release-manifest schema, selector and its tests. Image inputs stay digest-pinned.
+- Preview database operator requests without stopping services; keep stopped-owner
+  confirmation on execution. Ordinary provider settings changes remain online.
+
 ### Removed
 
 - Remove whole-installation sleep/wake orchestration, the registered sleep task,

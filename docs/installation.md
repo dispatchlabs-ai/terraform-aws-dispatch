@@ -101,22 +101,21 @@ release; absence of that bundle is a release blocker, not permission to use a
 fabricated archive or an unrelated local build.
 
 The caller exports `frontend_bucket`, `frontend_distribution_id` and
-`frontend_release_prefix`. The artifact selector derives the immutable prefix
-`releases/sha256-<archive-digest>` from the trusted release manifest. Publication
-is an explicit operator action outside Terraform:
+`frontend_release_prefix`. Use the archive's SHA-256 from the trusted release's
+`SHA256SUMS`; no compatibility manifest is required. The publisher derives
+`releases/sha256-<archive-digest>` directly from that checksum. Publication is an
+explicit operator action outside Terraform:
 
 ```sh
 # Run from the caller root; outputs contain references, not resolved secrets.
 tofu output -json > /path/to/operator-outputs.json
-# From the module checkout, preview offline; use your actual qualified version/platform.
-python3 scripts/publish-frontend.py /path/to/dispatch-release.json \
-  /path/to/dispatch-frontend.tar.gz --module-version "$MODULE_VERSION" \
-  --platform linux/arm64 --outputs /path/to/operator-outputs.json \
+# From the module checkout, preview offline using the published archive checksum.
+python3 scripts/publish-frontend.py /path/to/dispatch-frontend.tar.gz \
+  --sha256 "$FRONTEND_SHA256" --outputs /path/to/operator-outputs.json \
   --account "$AWS_ACCOUNT_ID" --region "$AWS_REGION"
 # Repeat the reviewed command with --execute --receipt /private/NEW-publication.json
 ```
 
-Use `linux/amd64` when appropriate; it must match the selected application release.
 Only explicit execution calls AWS. The helper verifies archive bytes/safe paths,
 account, bucket owner/region and conditional object checksums. It publishes shared
 append-only `assets/*` first and release-prefixed `index.html` last, without

@@ -110,8 +110,10 @@ even stopped unowned tasks can block its strict inventory while ECS retains them
 
 ## Maintenance and recovery
 
-Database/provider maintenance requires sealed admission, settled writes and
-confirmed stopped controllers/workers. Stop and confirm the backend while the
+Offline database repair, restore and provider-store recovery require sealed
+admission, settled writes and confirmed stopped controllers/workers. Ordinary
+provider connections and key changes use application Settings while services run.
+For offline maintenance, stop and confirm the backend while the
 launcher remains reachable, then stop/confirm the launcher. Do not scale both down
 simultaneously and assume orderly drain occurred. Restart launcher first, inspect
 its configuration/RunTask policy, then start the normal flag-free backend and

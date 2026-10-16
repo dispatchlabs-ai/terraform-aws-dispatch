@@ -64,10 +64,8 @@ class FakeAws:
 
 
 class OperatorTests(unittest.TestCase):
-    def test_create_is_explicit_and_network_is_private(self):
-        with self.assertRaises(operator.OperationError):
-            operator.request_for(outputs(), "database-create", ACCOUNT, REGION, False)
-        request, container = operator.request_for(outputs(), "database-create", ACCOUNT, REGION, True)
+    def test_create_command_and_network_is_private(self):
+        request, container = operator.request_for(outputs(), "database-create", ACCOUNT, REGION)
         self.assertEqual(container, "database-init")
         self.assertEqual(request["count"], 1)
         self.assertFalse(request["enableExecuteCommand"])
@@ -76,19 +74,19 @@ class OperatorTests(unittest.TestCase):
                          ["--create", "--confirm-services-stopped"])
 
     def test_verify_and_activation_do_not_reuse_create_command(self):
-        request, _ = operator.request_for(outputs(), "database-verify", ACCOUNT, REGION, True)
+        request, _ = operator.request_for(outputs(), "database-verify", ACCOUNT, REGION)
         self.assertEqual(request["overrides"]["containerOverrides"][0]["command"][-1], "--verify")
-        request, _ = operator.request_for(outputs(), "activate", ACCOUNT, REGION, False)
+        request, _ = operator.request_for(outputs(), "activate", ACCOUNT, REGION)
         self.assertNotIn("overrides", request)
 
     def test_output_envelope_supported(self):
         envelope = {key: {"value": value, "type": "synthetic", "sensitive": False}
                     for key, value in outputs().items()}
-        self.assertEqual(operator.request_for(envelope, "activate", ACCOUNT, REGION, False),
-                         operator.request_for(outputs(), "activate", ACCOUNT, REGION, False))
+        self.assertEqual(operator.request_for(envelope, "activate", ACCOUNT, REGION),
+                         operator.request_for(outputs(), "activate", ACCOUNT, REGION))
         envelope["activation"]["sensitive"] = True
         with self.assertRaises(operator.OperationError):
-            operator.request_for(envelope, "activate", ACCOUNT, REGION, False)
+            operator.request_for(envelope, "activate", ACCOUNT, REGION)
 
     def test_wrong_account_region_worker_cluster_and_unpinned_definition_refused(self):
         bad_outputs = []
@@ -102,13 +100,13 @@ class OperatorTests(unittest.TestCase):
         bad_outputs.append({**outputs(), "activation": None})
         for value in bad_outputs:
             with self.subTest(outputs=value), self.assertRaises(operator.OperationError):
-                operator.request_for(value, "activate", ACCOUNT, REGION, False)
+                operator.request_for(value, "activate", ACCOUNT, REGION)
         for account, region in [("999999999999", REGION), (ACCOUNT, "us-west-2")]:
             with self.assertRaises(operator.OperationError):
-                operator.request_for(outputs(), "activate", account, region, False)
+                operator.request_for(outputs(), "activate", account, region)
 
     def test_submit_records_intent_before_single_call_and_refuses_existing_receipt(self):
-        request, container = operator.request_for(outputs(), "activate", ACCOUNT, REGION, False)
+        request, container = operator.request_for(outputs(), "activate", ACCOUNT, REGION)
         with tempfile.TemporaryDirectory() as directory:
             receipt_path = Path(directory, "receipt.json")
             aws = FakeAws({"tasks": [task_for(request)]}, receipt=receipt_path)
@@ -123,7 +121,7 @@ class OperatorTests(unittest.TestCase):
             self.assertEqual(len(aws.calls), 1)
 
     def test_uncertain_submission_keeps_receipt_without_retry(self):
-        request, container = operator.request_for(outputs(), "activate", ACCOUNT, REGION, False)
+        request, container = operator.request_for(outputs(), "activate", ACCOUNT, REGION)
         with tempfile.TemporaryDirectory() as directory:
             receipt_path = Path(directory, "receipt.json")
             aws = FakeAws(fail=True, receipt=receipt_path)
@@ -135,7 +133,7 @@ class OperatorTests(unittest.TestCase):
             self.assertEqual(len(aws.calls), 1)
 
     def test_partial_failure_retains_known_task_identity(self):
-        request, container = operator.request_for(outputs(), "activate", ACCOUNT, REGION, False)
+        request, container = operator.request_for(outputs(), "activate", ACCOUNT, REGION)
         with tempfile.TemporaryDirectory() as directory:
             receipt_path = Path(directory, "receipt.json")
             aws = FakeAws({"tasks": [task_for(request)], "failures": [{"reason": "not-logged"}]}, receipt=receipt_path)
@@ -146,7 +144,7 @@ class OperatorTests(unittest.TestCase):
             self.assertNotIn("not-logged", receipt_path.read_text())
 
     def test_exact_stopped_task_and_all_exit_codes_required(self):
-        request, _ = operator.request_for(outputs(), "activate", ACCOUNT, REGION, False)
+        request, _ = operator.request_for(outputs(), "activate", ACCOUNT, REGION)
         receipt = {"schema_version": 1, "account": ACCOUNT, "region": REGION, "operation": "activate",
                    "container": "activation", "task_arn": TASK, "cluster": CLUSTER,
                    "task_definition": request["taskDefinition"]}
@@ -171,11 +169,19 @@ class OperatorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             file = Path(directory, "outputs.json")
             file.write_text(json.dumps(outputs()))
-            result = subprocess.run([sys.executable, str(SCRIPT), "run", "--outputs", str(file),
-                                     "--operation", "activate", "--account", ACCOUNT, "--region", REGION],
-                                    capture_output=True, text=True, env={**os.environ, "PATH": directory})
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertTrue(json.loads(result.stdout)["preview"])
+            for operation in operator.OPERATIONS:
+                command = [sys.executable, str(SCRIPT), "run", "--outputs", str(file),
+                           "--operation", operation, "--account", ACCOUNT, "--region", REGION]
+                result = subprocess.run(command, capture_output=True, text=True, env={"PATH": directory})
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertTrue(json.loads(result.stdout)["preview"])
+                if operation.startswith("database-"):
+                    receipt = Path(directory, "receipt.json")
+                    with patch.object(sys, "argv", command[1:] + ["--execute", "--receipt", str(receipt)]), \
+                         patch.object(operator, "submit") as submit:
+                        self.assertEqual(operator.main(), 1)
+                        submit.assert_not_called()
+                    self.assertFalse(receipt.exists())
 
     def test_aws_subprocess_disables_sdk_retries_and_suppresses_raw_failures(self):
         with patch.object(operator.subprocess, "run") as run:
