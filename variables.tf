@@ -94,3 +94,40 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "distributed_postgres" {
+  description = "Optional private PostgreSQL for a fresh distributed-worker installation. Null preserves the standalone foundation. Application databases, scoped roles, credentials and initialization remain explicit operator actions."
+  type = object({
+    engine_version          = string
+    instance_class          = optional(string, "db.t4g.small")
+    allocated_storage       = optional(number, 20)
+    max_allocated_storage   = optional(number, 100)
+    backup_retention_period = optional(number, 7)
+  })
+  default = null
+
+  validation {
+    condition     = var.distributed_postgres == null ? true : can(regex("^17\\.[0-9]+$", var.distributed_postgres.engine_version))
+    error_message = "Pin a supported PostgreSQL 17 minor version qualified with the application initializer."
+  }
+
+  validation {
+    condition = var.distributed_postgres == null ? true : (
+      var.distributed_postgres.allocated_storage >= 20 &&
+      var.distributed_postgres.max_allocated_storage >= var.distributed_postgres.allocated_storage &&
+      var.distributed_postgres.max_allocated_storage <= 1000 &&
+      floor(var.distributed_postgres.allocated_storage) == var.distributed_postgres.allocated_storage &&
+      floor(var.distributed_postgres.max_allocated_storage) == var.distributed_postgres.max_allocated_storage
+    )
+    error_message = "Use whole-GiB storage values from 20 to 1000, with maximum storage at least the initial allocation."
+  }
+
+  validation {
+    condition = var.distributed_postgres == null ? true : (
+      var.distributed_postgres.backup_retention_period >= 1 &&
+      var.distributed_postgres.backup_retention_period <= 35 &&
+      floor(var.distributed_postgres.backup_retention_period) == var.distributed_postgres.backup_retention_period
+    )
+    error_message = "Retain automated database backups for 1 to 35 whole days."
+  }
+}

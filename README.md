@@ -11,6 +11,16 @@
 
 The first milestone runs the published Dispatch 0.6.0 **standalone application** unchanged, using one retained encrypted EBS PVC for SQLite application/native state, keys, credentials, attachments and workspace. This is not the later distributed PostgreSQL/backend/launcher/worker-Pod model. It deliberately proves a fresh Kubernetes installation before changing application behavior.
 
+## Optional distributed-worker database
+
+Set `distributed_postgres` to an object with an explicit PostgreSQL 17 `engine_version` to add a separate private database for a fresh distributed installation. Its default is `null`, so existing standalone callers keep their current resources. The default database size is a single-AZ `db.t4g.small` with 20 GiB encrypted gp3 storage, growth capped at 100 GiB, seven days of automated backups and retained automated backups on deletion. Deletion protection, a final snapshot and Terraform `prevent_destroy` require a separate reviewed removal plan. Minor-version changes are explicit; no automatic HA or database failover is claimed.
+
+The database security group permits PostgreSQL only from this cluster's node security group. Platform NetworkPolicies must separately admit only the intended backend, launcher, worker and stopped-service operator paths. Clients must use the verified RDS CA and exact endpoint; `rds.force_ssl` requires TLS. The parameter group also enforces the credential-safe logging settings required by the existing initializer and worker-role provisioner.
+
+The `distributed_postgres` output contains endpoint information and the RDS-managed operator password's secret ARN, never its value. Only the separate trusted initializer may receive that master credential. It creates the seven isolated application databases/roles; the backend gets six scoped URLs, the launcher only its journal URL, and workers receive conversation-scoped credentials through the authenticated backend. Terraform does not initialize roles, fetch credentials or create Kubernetes Secrets. Preserve the installation's encryption/signing keys and paired data backups outside ephemeral Pods.
+
+Artifact storage remains an application/platform choice. This database option adds no S3 bucket, application IAM role, Pod Identity requirement or cloud-specific artifact API. Kubernetes installations supply their artifact volume through a StorageClass; existing S3-capable deployments remain separate. The database's backups do not back up artifact volumes or verify whole-application restore.
+
 ## Safety and cost
 
 The default one-node experiment is **not HA**. One NAT serves two private subnets; a NAT/AZ outage interrupts egress. There is no autoscaler. The node group has one additional permitted node for explicit maintenance, not automatic capacity scaling. All ordinary cloud/application costs continue while the experiment is running.

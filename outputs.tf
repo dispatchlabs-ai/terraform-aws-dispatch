@@ -27,3 +27,15 @@ output "load_balancer_controller_role_arn" {
   description = "IRSA role for the kube-system/aws-load-balancer-controller service account."
   value       = aws_iam_role.system["ingress"].arn
 }
+
+output "distributed_postgres" {
+  description = "Private database endpoint and operator-only credential reference; no secret values. Null when the distributed database is disabled."
+  value = var.distributed_postgres == null ? null : {
+    identifier           = aws_db_instance.distributed["workers"].identifier
+    host                 = aws_db_instance.distributed["workers"].address
+    port                 = aws_db_instance.distributed["workers"].port
+    master_secret_arn    = aws_db_instance.distributed["workers"].master_user_secret[0].secret_arn
+    security_group_id    = aws_security_group.distributed_database["workers"].id
+    private_subnet_cidrs = [for subnet in aws_subnet.private : subnet.cidr_block]
+  }
+}
