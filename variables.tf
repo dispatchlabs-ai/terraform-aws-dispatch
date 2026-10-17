@@ -1,199 +1,96 @@
 variable "name" {
-  type = string
+  description = "Unique installation foundation name; changing it replaces named infrastructure."
+  type        = string
+
   validation {
-    condition     = can(regex("^[a-z][a-z0-9-]{2,19}$", var.name))
-    error_message = "Use a 3–20 character lowercase installation name."
+    condition     = can(regex("^[a-z][a-z0-9-]{2,29}$", var.name))
+    error_message = "Use 3–30 lowercase letters, digits and hyphens, starting with a letter."
   }
 }
+
+variable "kubernetes_version" {
+  description = "Explicit, supported EKS Kubernetes minor version. Review upgrades independently of application updates."
+  type        = string
+
+  validation {
+    condition     = can(regex("^1\\.[0-9]+$", var.kubernetes_version))
+    error_message = "Specify a Kubernetes minor version, for example 1.36."
+  }
+}
+
+variable "vpc_cidr" {
+  description = "Dedicated non-overlapping IPv4 /16; public /24 and private /20 subnets are derived from it."
+  type        = string
+
+  validation {
+    condition     = can(cidrnetmask(var.vpc_cidr)) && can(regex("/16$", var.vpc_cidr))
+    error_message = "Provide a valid IPv4 /16 CIDR."
+  }
+}
+
 variable "availability_zones" {
-  type = list(string)
+  description = "Two distinct availability zones in the caller's region. One NAT gateway serves both private subnets."
+  type        = list(string)
+
   validation {
     condition     = length(var.availability_zones) == 2 && length(distinct(var.availability_zones)) == 2
-    error_message = "Supply exactly two distinct availability zones."
-  }
-}
-variable "vpc_cidr" {
-  type = string
-}
-variable "tags" {
-  type    = map(string)
-  default = {}
-}
-variable "database_instance_class" {
-  type    = string
-  default = "db.t4g.small"
-}
-variable "database_engine_version" {
-  type    = string
-  default = "17"
-  validation {
-    condition     = can(regex("^17(\\.[0-9]+)?$", var.database_engine_version))
-    error_message = "This module uses the PostgreSQL 17 parameter family."
-  }
-}
-variable "database_storage_gib" {
-  type    = number
-  default = 20
-}
-variable "log_retention_days" {
-  type    = number
-  default = 7
-  validation {
-    condition     = contains([1, 3, 5, 7, 14, 30], var.log_retention_days)
-    error_message = "Select short CloudWatch retention: 1, 3, 5, 7, 14 or 30 days."
-  }
-}
-variable "image" {
-  description = "Immutable controller OCI registry digest (and worker fallback). Null prepares foundation only."
-  type        = string
-  default     = null
-  validation {
-    condition     = var.image == null ? true : can(regex("@sha256:[a-f0-9]{64}$", var.image))
-    error_message = "Use an immutable registry digest."
-  }
-}
-variable "worker_image" {
-  description = "Optional separate immutable worker image; null retains the controller image."
-  type        = string
-  default     = null
-  validation {
-    condition     = var.worker_image == null ? true : can(regex("@sha256:[a-f0-9]{64}$", var.worker_image))
-    error_message = "Use an immutable worker registry digest."
-  }
-}
-variable "worker_package_installation" {
-  description = "Opt in to trusted root workers with writable disposable root and ordinary container capabilities. Controllers remain hardened."
-  type        = bool
-  default     = false
-}
-variable "worker_cpu" {
-  description = "Fargate CPU units for new conversation workers. Select an AWS-supported CPU/memory combination; controllers retain their separate baseline."
-  type        = string
-  default     = "512"
-}
-variable "worker_warm_spare" {
-  description = "Keep one unassigned Fargate worker ready and replenish it after assignment. Requires warm-spare-capable Dispatch images; adds one running worker's cost. Drain suspends the spare."
-  type        = bool
-  default     = false
-}
-
-variable "worker_idle_timeout_seconds" {
-  description = "Conversation-worker inactivity timeout in compatible Dispatch backends. Null uses that image version's application default; zero disables new automatic retirements. Does not stop the warm spare or controllers."
-  type        = number
-  default     = null
-  validation {
-    condition     = var.worker_idle_timeout_seconds == null ? true : var.worker_idle_timeout_seconds >= 0 && var.worker_idle_timeout_seconds <= 9007199254740 && floor(var.worker_idle_timeout_seconds) == var.worker_idle_timeout_seconds
-    error_message = "Use null or a nonnegative whole number of seconds representable as safe integer milliseconds."
-  }
-}
-variable "worker_memory" {
-  description = "Fargate memory in MiB for new conversation workers, paired with worker_cpu."
-  type        = string
-  default     = "2048"
-}
-variable "cpu_architecture" {
-  type    = string
-  default = "ARM64"
-  validation {
-    condition     = contains(["ARM64", "X86_64"], var.cpu_architecture)
-    error_message = "Select ARM64 or X86_64."
-  }
-}
-variable "secret_kms_key_arns" {
-  type    = set(string)
-  default = []
-}
-variable "desired_count" {
-  description = "Explicit activation after bootstrap and owner checks; never more than one backend/launcher."
-  type        = number
-  default     = 0
-  validation {
-    condition     = contains([0, 1], var.desired_count)
-    error_message = "Only zero or one stable service owner is supported."
-  }
-}
-variable "certificate_arn" {
-  type    = string
-  default = null
-}
-variable "internal_alb" {
-  type    = bool
-  default = true
-}
-variable "client_cidrs" {
-  type    = set(string)
-  default = []
-}
-variable "backend_health_check_path" {
-  description = "ALB process-liveness path. Use /internal/health with a supporting image; it must remain healthy during intentional drain. Public /internal access stays blocked."
-  type        = string
-  default     = "/internal/health"
-  validation {
-    condition     = startswith(var.backend_health_check_path, "/")
-    error_message = "Health check path must start with /."
+    error_message = "Specify exactly two distinct availability zones."
   }
 }
 
-variable "service_desired_counts" {
-  description = "Optional per-controller zero/one overrides for ordered maintenance: stop backend and confirm termination before stopping launcher."
-  type        = map(number)
-  default     = {}
+variable "api_access_cidrs" {
+  description = "Explicit operator IPv4 CIDRs allowed to reach the public EKS API; private access remains enabled."
+  type        = list(string)
+
   validation {
-    condition     = alltrue([for role, count in var.service_desired_counts : contains(["backend", "launcher"], role) && contains([0, 1], count)])
-    error_message = "Only backend/launcher zero-or-one overrides are supported."
+    condition = length(var.api_access_cidrs) > 0 && alltrue([
+      for cidr in var.api_access_cidrs : can(cidrnetmask(cidr)) && try(tonumber(split("/", cidr)[1]) >= 24, false)
+    ])
+    error_message = "Use nonempty IPv4 CIDRs with prefix length /24 or narrower; do not expose the API to the Internet."
   }
 }
 
-variable "service_deployment_mode" {
-  description = "Controllers default to readiness-gated rolling (100/200). Stop-first is an explicit maintenance choice, not a zero-downtime deployment."
-  type        = map(string)
-  default     = { backend = "rolling", launcher = "rolling" }
-  validation {
-    condition     = alltrue([for role, mode in var.service_deployment_mode : contains(["backend", "launcher"], role) && contains(["stop-first", "rolling"], mode)])
-    error_message = "Select stop-first or rolling for backend and/or launcher only."
-  }
-}
-
-variable "launcher_internal_alb" {
-  description = "Use a private launcher ALB for managed request withdrawal/draining. Requires a readiness-capable image; migrate callers before enabling rolling."
-  type        = bool
-  default     = true
-}
-
-variable "backend_callback_certificate_arn" {
-  description = "Optional ACM certificate for callbacks.<name>.internal on the private ALB. Requires launcher_internal_alb and a readiness-capable backend. The certificate must match backend_callback_hostname and chain to the workers' configured CA bundle."
-  type        = string
-  default     = null
-  validation {
-    condition     = var.backend_callback_certificate_arn == null || var.launcher_internal_alb
-    error_message = "Backend callback ingress reuses the private ALB; enable launcher_internal_alb."
-  }
-}
-
-variable "deregistration_delay_seconds" {
-  description = "ALB request-drain allowance. Short values permit interrupted requests; they do not bypass controller ownership."
-  type        = number
-  default     = 30
-  validation {
-    condition     = var.deregistration_delay_seconds >= 0 && var.deregistration_delay_seconds <= 3600 && floor(var.deregistration_delay_seconds) == var.deregistration_delay_seconds
-    error_message = "Use an integer from 0 to 3600 seconds."
-  }
-}
-variable "idle_timeout_seconds" {
-  description = "ALB idle connection timeout, independent of application request bounds and task stop allowance."
-  type        = number
-  default     = 300
-  validation {
-    condition     = var.idle_timeout_seconds >= 1 && var.idle_timeout_seconds <= 4000 && floor(var.idle_timeout_seconds) == var.idle_timeout_seconds
-    error_message = "Use an integer from 1 to 4000 seconds."
-  }
-}
-variable "image_pull_repository_arns" {
-  description = "Additional exact private ECR repository ARNs authorized for image pulls. Public GHCR pulls need no ECR grant."
+variable "cluster_admin_arns" {
+  description = "Explicit IAM role/user ARNs granted cluster-admin access through EKS access entries; never STS session ARNs."
   type        = set(string)
-  default     = []
+
   validation {
-    condition     = alltrue([for arn in var.image_pull_repository_arns : can(regex("^arn:[a-z-]+:ecr:[a-z0-9-]+:[0-9]{12}:repository/[^*?]+$", arn))])
-    error_message = "Supply exact ECR repository ARNs, never wildcards."
+    condition = length(var.cluster_admin_arns) > 0 && alltrue([
+      for arn in var.cluster_admin_arns : can(regex("^arn:[^:]+:iam::[0-9]{12}:(role|user)/", arn))
+    ])
+    error_message = "Provide at least one IAM role/user ARN, not an assumed-role session ARN."
   }
+}
+
+variable "node_instance_type" {
+  description = "On-demand AMD64 worker instance type. The experiment defaults to one t3.medium; it is not HA."
+  type        = string
+  default     = "t3.medium"
+}
+
+variable "node_count" {
+  description = "Explicit desired/minimum node count; no cluster autoscaler is installed by this module."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.node_count >= 1 && var.node_count <= 5 && floor(var.node_count) == var.node_count
+    error_message = "Choose 1–5 nodes. Review the cost and singleton maintenance implications before increasing."
+  }
+}
+
+variable "addon_versions" {
+  description = "Pinned EKS add-on versions qualified for the selected Kubernetes minor."
+  type = object({
+    vpc_cni    = string
+    kube_proxy = string
+    coredns    = string
+    ebs_csi    = string
+  })
+}
+
+variable "tags" {
+  description = "Caller-owned account/environment tags applied to foundation resources."
+  type        = map(string)
+  default     = {}
 }

@@ -1,36 +1,29 @@
-output "service_cluster_arn" { value = aws_ecs_cluster.this.arn }
-output "private_subnet_ids" { value = aws_subnet.private[*].id }
-output "worker_security_group_id" { value = aws_security_group.tasks["worker"].id }
-output "worker_task_definition_arn" { value = try(aws_ecs_task_definition.worker[0].arn, null) }
-output "ecr_repository_url" { value = aws_ecr_repository.this.repository_url }
-output "database_address" { value = local.database_address }
-output "database_master_secret_arn" {
-  value       = local.database_master_secret_arn
-  description = "Operator bootstrap only; never inject master credentials into services/workers."
-}
-output "artifact_bucket" { value = aws_s3_bucket.artifacts.id }
-output "backend_private_url" { value = "https://backend.${aws_service_discovery_private_dns_namespace.this.name}:3001" }
-output "launcher_private_url" { value = var.launcher_internal_alb ? "http://${local.control_alb_dns_name}:8830" : "http://launcher.${aws_service_discovery_private_dns_namespace.this.name}:8830" }
-output "alb_dns_name" { value = try(aws_lb.this[0].dns_name, null) }
-output "alb_zone_id" { value = try(aws_lb.this[0].zone_id, null) }
-output "task_role_arns" { value = { for key, role in aws_iam_role.task : key => role.arn } }
-
-output "worker_cluster_arn" { value = aws_ecs_cluster.workers.arn }
-output "database_initializer" {
-  value = local.database_initializer_enabled ? {
-    task_definition_arn = aws_ecs_task_definition.database_initializer[0].arn
-    security_group_id   = aws_security_group.database_initializer[0].id
-    execution_role_arn  = aws_iam_role.database_initializer_execution[0].arn
-    task_role_arn       = aws_iam_role.database_initializer_task[0].arn
-  } : null
-  description = "Operator-only RunTask inputs; use credential_maintenance.cluster_arn, task_subnet_ids and task_assign_public_ip. Not scheduled by Terraform."
+output "cluster_name" {
+  description = "Cluster name for explicit kubeconfig setup."
+  value       = aws_eks_cluster.this.name
 }
 
-output "backend_callback_hostname" {
-  value       = local.backend_callback_hostname
-  description = "Private callback certificate DNS identity, available before certificate provisioning."
+output "cluster_endpoint" {
+  description = "EKS API endpoint; reachable publicly only from the configured operator CIDRs."
+  value       = aws_eks_cluster.this.endpoint
 }
-output "backend_callback_url" {
-  value       = local.backend_callback_enabled ? "https://${local.backend_callback_hostname}:${local.callback_port}" : null
-  description = "Readiness-gated worker callback origin. Set DISPATCH_BACKEND_INTERNAL_URL explicitly and supply matching worker CA trust; existing worker environments are not changed."
+
+output "vpc_id" {
+  description = "Dedicated VPC for platform controller configuration."
+  value       = aws_vpc.this.id
+}
+
+output "vpc_cidr" {
+  description = "Installation VPC CIDR, for application ingress policy."
+  value       = aws_vpc.this.cidr_block
+}
+
+output "public_subnet_ids" {
+  description = "Explicit internet-facing load-balancer subnet IDs."
+  value       = [for subnet in aws_subnet.public : subnet.id]
+}
+
+output "load_balancer_controller_role_arn" {
+  description = "IRSA role for the kube-system/aws-load-balancer-controller service account."
+  value       = aws_iam_role.system["ingress"].arn
 }
