@@ -19,7 +19,7 @@ The database security group permits PostgreSQL only from this cluster's node sec
 
 The `distributed_postgres` output contains endpoint information and the RDS-managed operator password's secret ARN, never its value. Only the separate trusted initializer may receive that master credential. It creates the seven isolated application databases/roles; the backend gets six scoped URLs, the launcher only its journal URL, and workers receive conversation-scoped credentials through the authenticated backend. Terraform does not initialize roles, fetch credentials or create Kubernetes Secrets. Preserve the installation's encryption/signing keys and paired data backups outside ephemeral Pods.
 
-Artifact storage remains an application/platform choice. This database option adds no S3 bucket, application IAM role, Pod Identity requirement or cloud-specific artifact API. Kubernetes installations supply their artifact volume through a StorageClass; existing S3-capable deployments remain separate. The database's backups do not back up artifact volumes or verify whole-application restore.
+This database option adds no S3 bucket, application IAM role or Pod Identity agent/association. The experimental distributed application chart now uses S3-compatible artifacts through unified blob storage, superseding its earlier filesystem/PVC draft. The platform must separately supply a private encrypted/versioned bucket and backend-only scoped credentials, either a restricted Secret or EKS Pod Identity. No application artifact resources have been provisioned by this module. The database's backups do not back up artifact objects or verify whole-application restore. Standalone's retained volume is unchanged.
 
 ## Safety and cost
 
