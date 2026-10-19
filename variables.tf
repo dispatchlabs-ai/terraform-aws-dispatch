@@ -89,6 +89,17 @@ variable "addon_versions" {
   })
 }
 
+variable "pod_identity_agent_version" {
+  description = "Optional pinned EKS Pod Identity Agent add-on version qualified for this cluster. Null leaves the agent absent; application roles and ServiceAccount associations remain caller-owned."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.pod_identity_agent_version == null ? true : can(regex("^v[0-9]+\\.[0-9]+\\.[0-9]+-eksbuild\\.[0-9]+$", var.pod_identity_agent_version))
+    error_message = "Use null or an explicit EKS add-on version such as v1.3.10-eksbuild.3."
+  }
+}
+
 variable "tags" {
   description = "Caller-owned account/environment tags applied to foundation resources."
   type        = map(string)

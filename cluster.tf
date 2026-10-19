@@ -140,3 +140,19 @@ resource "aws_eks_addon" "ebs" {
   depends_on               = [aws_eks_node_group.this, aws_iam_role_policy_attachment.system]
   tags                     = local.tags
 }
+
+resource "aws_eks_addon" "pod_identity_agent" {
+  count         = var.pod_identity_agent_version == null ? 0 : 1
+  cluster_name  = aws_eks_cluster.this.name
+  addon_name    = "eks-pod-identity-agent"
+  addon_version = var.pod_identity_agent_version
+
+  # This foundation has IPv4 networking. The agent uses the existing node role's
+  # AmazonEKSWorkerNodePolicy permission, not an IRSA service-account role.
+  configuration_values = jsonencode({
+    agent = { additionalArgs = { "-b" = "169.254.170.23" } }
+  })
+
+  depends_on = [aws_eks_node_group.this, aws_iam_role_policy_attachment.nodes]
+  tags       = local.tags
+}

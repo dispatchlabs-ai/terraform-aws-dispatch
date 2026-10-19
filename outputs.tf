@@ -3,6 +3,11 @@ output "cluster_name" {
   value       = aws_eks_cluster.this.name
 }
 
+output "cluster_arn" {
+  description = "Exact cluster ARN for caller-owned Pod Identity role trust constraints."
+  value       = aws_eks_cluster.this.arn
+}
+
 output "cluster_endpoint" {
   description = "EKS API endpoint; reachable publicly only from the configured operator CIDRs."
   value       = aws_eks_cluster.this.endpoint
