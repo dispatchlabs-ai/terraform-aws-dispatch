@@ -55,9 +55,13 @@ resource "aws_eks_addon" "cni" {
   addon_name               = "vpc-cni"
   addon_version            = var.addon_versions.vpc_cni
   service_account_role_arn = aws_iam_role.system["cni"].arn
-  configuration_values     = jsonencode({ enableNetworkPolicy = "true" })
-  depends_on               = [aws_iam_role_policy_attachment.system]
-  tags                     = local.tags
+  # Cilium chains after aws-cni for IPAM and owns all policy enforcement. Never
+  # run both policy agents; an existing cluster requires a stopped-owner migration.
+  configuration_values = jsonencode({
+    enableNetworkPolicy = var.network_policy_provider == "aws-vpc-cni" ? "true" : "false"
+  })
+  depends_on = [aws_iam_role_policy_attachment.system]
+  tags       = local.tags
 }
 
 resource "aws_eks_addon" "kube_proxy" {
@@ -102,6 +106,18 @@ resource "aws_eks_node_group" "this" {
   capacity_type   = "ON_DEMAND"
   instance_types  = [var.node_instance_type]
 
+  # Cilium removes this bootstrap taint only after installing the chained CNI.
+  # Newly added/replacement nodes must not run application Pods with AWS IPAM
+  # alone while the separately installed policy agent is still starting.
+  dynamic "taint" {
+    for_each = var.network_policy_provider == "cilium" ? [true] : []
+    content {
+      key    = "node.cilium.io/agent-not-ready"
+      value  = "true"
+      effect = "NO_EXECUTE"
+    }
+  }
+
   scaling_config {
     desired_size = var.node_count
     min_size     = var.node_count
@@ -128,8 +144,18 @@ resource "aws_eks_addon" "coredns" {
   cluster_name  = aws_eks_cluster.this.name
   addon_name    = "coredns"
   addon_version = var.addon_versions.coredns
-  depends_on    = [aws_eks_node_group.this]
-  tags          = local.tags
+  # Trusted foundation services must become healthy before the separate Cilium
+  # installation. Application Pods never receive this bootstrap toleration.
+  configuration_values = var.network_policy_provider == "cilium" ? jsonencode({
+    tolerations = [
+      { key = "CriticalAddonsOnly", operator = "Exists" },
+      { key = "node-role.kubernetes.io/control-plane", operator = "Exists", effect = "NoSchedule" },
+      { key = "node-role.kubernetes.io/master", operator = "Exists", effect = "NoSchedule" },
+      { key = "node.cilium.io/agent-not-ready", operator = "Exists", effect = "NoExecute" },
+    ]
+  }) : null
+  depends_on = [aws_eks_node_group.this]
+  tags       = local.tags
 }
 
 resource "aws_eks_addon" "ebs" {
@@ -137,8 +163,17 @@ resource "aws_eks_addon" "ebs" {
   addon_name               = "aws-ebs-csi-driver"
   addon_version            = var.addon_versions.ebs_csi
   service_account_role_arn = aws_iam_role.system["ebs"].arn
-  depends_on               = [aws_eks_node_group.this, aws_iam_role_policy_attachment.system]
-  tags                     = local.tags
+  configuration_values = var.network_policy_provider == "cilium" ? jsonencode({
+    controller = {
+      tolerations = [
+        { key = "CriticalAddonsOnly", operator = "Exists" },
+        { key = "node.cilium.io/agent-not-ready", operator = "Exists", effect = "NoExecute" },
+        { operator = "Exists", effect = "NoExecute", tolerationSeconds = 300 },
+      ]
+    }
+  }) : null
+  depends_on = [aws_eks_node_group.this, aws_iam_role_policy_attachment.system]
+  tags       = local.tags
 }
 
 resource "aws_eks_addon" "pod_identity_agent" {

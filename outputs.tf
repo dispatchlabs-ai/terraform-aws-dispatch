@@ -23,6 +23,11 @@ output "vpc_cidr" {
   value       = aws_vpc.this.cidr_block
 }
 
+output "network_policy_provider" {
+  description = "Platform policy owner; cilium requires its separate chaining installation before application activation."
+  value       = var.network_policy_provider
+}
+
 output "public_subnet_ids" {
   description = "Explicit internet-facing load-balancer subnet IDs."
   value       = [for subnet in aws_subnet.public : subnet.id]

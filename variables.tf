@@ -89,6 +89,17 @@ variable "addon_versions" {
   })
 }
 
+variable "network_policy_provider" {
+  description = "Policy owner: cilium requires the separately installed AWS-CNI chaining platform before application Pods start. aws-vpc-cni retains the historical standalone baseline and does not qualify bare conversation-worker Pods."
+  type        = string
+  default     = "cilium"
+
+  validation {
+    condition     = contains(["cilium", "aws-vpc-cni"], var.network_policy_provider)
+    error_message = "Choose cilium for distributed workers or aws-vpc-cni for the retained standalone baseline."
+  }
+}
+
 variable "pod_identity_agent_version" {
   description = "Optional pinned EKS Pod Identity Agent add-on version qualified for this cluster. Null leaves the agent absent; application roles and ServiceAccount associations remain caller-owned."
   type        = string
