@@ -1,0 +1,18 @@
+# Replace account, operator identities/ranges and globally unique bucket.
+account_id         = "123456789012"
+api_access_cidrs   = ["203.0.113.10/32"]
+cluster_admin_arns = ["arn:aws:iam::123456789012:role/dispatch-operator"]
+artifacts_bucket   = "your-account-dispatch-artifacts"
+
+# These are example release pins, not a guarantee of regional availability.
+# Review: aws eks describe-addon-versions --kubernetes-version 1.36
+kubernetes_version         = "1.36"
+pod_identity_agent_version = "v1.3.10-eksbuild.3"
+addon_versions = {
+  vpc_cni    = "v1.22.4-eksbuild.3"
+  kube_proxy = "v1.36.0-eksbuild.48"
+  coredns    = "v1.14.7-eksbuild.11"
+  ebs_csi    = "v1.67.0-eksbuild.1"
+}
+# Review: aws rds describe-db-engine-versions --engine postgres
+postgres_version = "17.7"

@@ -64,8 +64,34 @@ Use only trusted users/agents. A container, namespace or NetworkPolicy is not ho
 
 ## Consumption
 
+The [complete example](examples/complete) is a typed root configuration for EKS,
+PostgreSQL, encrypted/versioned S3 artifacts, backend-only Pod Identity and ECR.
+It includes operator prerequisites and chart/platform wiring. Run it from a
+reviewed checkout, or copy it to your calling repository and replace its
+foundation module's local source with a full reviewed Git commit. It uses no
+Surton-specific identities, state or resource names.
+
 Use a local path or a pinned experimental Git commit while developing; do not claim the public registry's ECS versions contain this implementation. The checked-in caller at `dispatch-infra/environments/surton/dispatch-kubernetes` defines explicit account guards, versions and a fresh remote-state key. Apply the foundation before installing platform controllers or the application.
+
+The existing Terraform Registry address `dispatchlabs-ai/dispatch/aws` publishes
+ECS versions 0.1.0/0.2.0, not this Kubernetes implementation. No Kubernetes release
+is available there or claimed available in OpenTofu's registry. A Kubernetes
+release needs an explicit compatibility boundary, semantic version and separate
+registration in each intended registry. Once a Kubernetes version is published,
+the short source resolves to each CLI's default registry; pin a reviewed version
+and retain a separate state from ECS. Until then, pin the Git source:
+
+```hcl
+module "dispatch" {
+  source = "git::https://github.com/dispatchlabs-ai/terraform-aws-dispatch.git?ref=<full-reviewed-kubernetes-commit>"
+  # Supply the inputs shown in examples/complete/main.tf.
+}
+```
 
 Do not use this module against existing ECS state. Never rename/reuse existing backend keys, domains, VPCs, databases or source volumes to create a supposedly fresh installation. No legacy state, Slack integration or migration is part of this milestone.
 
-Checks: `terraform fmt`, backend-disabled initialization/validation and a reviewed caller plan. No automated tests are added or run.
+Checks: `terraform fmt -check -recursive`, backend-disabled
+initialization/validation of the module and complete example with Terraform and
+OpenTofu, then a reviewed caller plan. No automated tests are added or run.
+Static validation does not establish fresh-cloud provisioning or application
+recovery; qualify those independently.
